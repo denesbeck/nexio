@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -24,27 +22,32 @@ var workdirCmd = &cobra.Command{
 
 func runWorkdirCommand() (returnCode int, workdirContent []FileListEntry) {
 	if initialized := IsInitialized(); !initialized {
-		color.Red(COMMON_RETURN_CODES[001])
+		Fail(COMMON_RETURN_CODES[001])
 		return 001, nil
 	}
+
 	commitId := GetLastCommit().Id
 	if commitId == "" {
-		color.Cyan("No commits yet")
-		return
+		Info(WORKDIR_RETURN_CODES[302])
+		return 302, nil
 	}
+
+	// If there is a commit, there should be at least one file
 	content := GetFileListContent(commitId)
 
 	sort.Slice(*content, func(i, j int) bool {
 		return (*content)[i].Path < (*content)[j].Path
 	})
 
-	if len(*content) == 0 {
-		color.Cyan("No files committed")
-	} else {
-		color.Cyan("Files committed:")
-		for _, record := range *content {
-			fmt.Println("  - " + record.Path)
-		}
+	files := []string{}
+	for _, record := range *content {
+		files = append(files, record.Path)
 	}
+
+	list := GenerateLeveledList(files)
+	BreakLine()
+	Info("Files tracked:")
+	Tree(list, ".")
+
 	return 301, *content
 }

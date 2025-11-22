@@ -100,7 +100,7 @@ func Test_List(t *testing.T) {
 	List("Empty", []string{}, false)
 }
 
-func Test_Tree(t *testing.T) {
+func Test_TreeList(t *testing.T) {
 	// Just test that it doesn't panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -108,12 +108,12 @@ func Test_Tree(t *testing.T) {
 		}
 	}()
 	// Test with empty list
-	Tree([]string{}, true)
+	TreeList([]string{}, true)
 
 	// Test with single file
-	Tree([]string{"file1.txt"}, true)
+	TreeList([]string{"file1.txt"}, true)
 
 	// Test with multiple files
-	Tree([]string{"file1.txt", "file2.txt", "file3.txt"}, true)
-	Tree([]string{"file1.txt", "file2.txt", "file3.txt"}, false)
+	TreeList([]string{"file1.txt", "file2.txt", "file3.txt"}, true)
+	TreeList([]string{"file1.txt", "file2.txt", "file3.txt"}, false)
 }

@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/pterm/pterm"
+	"github.com/pterm/pterm/putils"
 )
 
 func Success(content string) {
@@ -91,7 +94,7 @@ func List(rootNode string, list []string, ordered bool) {
 	}
 }
 
-func Tree(files []string, sorted bool) {
+func TreeList(files []string, sorted bool) {
 	if len(files) == 0 {
 		return
 	}
@@ -115,6 +118,13 @@ func Tree(files []string, sorted bool) {
 			pterm.Println("  ├── " + file)
 		}
 	}
+}
+
+func Tree(list pterm.LeveledList, rootText string) {
+	root := putils.TreeFromLeveledList(list)
+	root.Text = rootText
+
+	pterm.DefaultTree.WithRoot(root).Render()
 }
 
 func StyledBranch(branch string) string {
@@ -157,4 +167,33 @@ func Box(title string, content string) {
 	} else {
 		box.WithTitle(title).Print(content)
 	}
+}
+
+func GenerateLeveledList(files []string) pterm.LeveledList {
+	list := pterm.LeveledList{}
+	seen := make(map[string]bool)
+
+	for _, file := range files {
+		parts := strings.Split(filepath.ToSlash(file), "/")
+		currentPath := ""
+
+		for index, part := range parts {
+			if index > 0 {
+				currentPath += "/"
+			}
+			currentPath += part
+
+			if seen[currentPath] {
+				continue
+			}
+			seen[currentPath] = true
+
+			list = append(list, pterm.LeveledListItem{
+				Level: index,
+				Text:  part,
+			})
+		}
+	}
+
+	return list
 }

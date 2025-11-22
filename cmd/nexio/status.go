@@ -55,8 +55,8 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 		for i, file := range deleted {
 			deleted[i] = pterm.FgRed.Sprint(" REM: ") + file
 		}
-		Tree(modified, false)
-		Tree(deleted, false)
+		TreeList(modified, false)
+		TreeList(deleted, false)
 	} else {
 		Debug("%s", STATUS_RETURN_CODES[503])
 	}
@@ -65,7 +65,7 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 	if len(untracked) != 0 {
 		BreakLine()
 		Info("Untracked files " + "(" + strconv.Itoa(len(untracked)) + ")")
-		Tree(untracked, true)
+		TreeList(untracked, true)
 		BreakLine()
 		Text("Use "+Code("nexio add <file>...")+" to track", "")
 	} else {

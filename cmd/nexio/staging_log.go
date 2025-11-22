@@ -211,7 +211,7 @@ func PrintLogs(content []LogFileEntry) {
 			log = append(log, logEntry.Op+" "+logEntry.Path)
 		}
 	}
-	Tree(log, false)
+	TreeList(log, false)
 	Debug("Log entries printed successfully")
 }
 
