@@ -82,7 +82,9 @@ func BreakLine() {
 
 func List(rootNode string, list []string, ordered bool) {
 	style := pterm.NewStyle(pterm.Bold)
-	style.Println(rootNode)
+	if rootNode != "" {
+		style.Println(rootNode)
+	}
 	for i, item := range list {
 		var prefix string
 		if ordered {
