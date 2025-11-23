@@ -91,8 +91,6 @@ func DisplayAddResults(results []AddResult) {
 		list := GenerateLeveledList(failed)
 		Tree(list, ".")
 	}
-
-	BreakLine()
 }
 
 func RemoveFileAndLog(id string, op string) error {
