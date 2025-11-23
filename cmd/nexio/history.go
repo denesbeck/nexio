@@ -36,14 +36,14 @@ func runHistoryCommand() (returnCode int, history []History) {
 	initialized := IsInitialized()
 	if !initialized {
 		color.Red(COMMON_RETURN_CODES[001])
-		return
+		return 001, nil
 	}
 
 	commits := GetCommits()
 	if len(*commits) == 0 {
 		Debug("%s", HISTORY_RETURN_CODES[402])
 		Info(HISTORY_RETURN_CODES[402])
-		return
+		return 402, nil
 	}
 	if len(*commits) > 20 {
 		Debug("Limiting to last 20 commits")

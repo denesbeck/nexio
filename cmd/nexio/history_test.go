@@ -65,3 +65,35 @@ func Test_History(t *testing.T) {
 
 	os.RemoveAll(namespace)
 }
+
+func Test_History_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	statusCode, history := runHistoryCommand()
+	if statusCode != 001 {
+		t.Errorf("Expected 001, got %d", statusCode)
+	}
+
+	if history != nil {
+		t.Errorf("Expected nil history, got %v", history)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_History_NoCommits(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	runInitCommand()
+
+	statusCode, history := runHistoryCommand()
+	if statusCode != 402 {
+		t.Errorf("Expected 402, got %d", statusCode)
+	}
+
+	if len(history) != 0 {
+		t.Errorf("Expected 0 commits, got %d", len(history))
+	}
+
+	os.RemoveAll(namespace)
+}

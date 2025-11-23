@@ -46,3 +46,35 @@ func Test_Workdir(t *testing.T) {
 
 	os.RemoveAll(namespace)
 }
+
+func Test_Workdir_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	statusCode, content := runWorkdirCommand()
+	if statusCode != 001 {
+		t.Errorf("Expected 001, got %d", statusCode)
+	}
+
+	if content != nil {
+		t.Errorf("Expected nil content, got %v", content)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_Workdir_NoCommits(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	runInitCommand()
+
+	statusCode, content := runWorkdirCommand()
+	if statusCode != 302 {
+		t.Errorf("Expected 302, got %d", statusCode)
+	}
+
+	if len(content) != 0 {
+		t.Errorf("Expected 0 files, got %d", len(content))
+	}
+
+	os.RemoveAll(namespace)
+}
