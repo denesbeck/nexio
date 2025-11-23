@@ -133,8 +133,8 @@ func Test_GenerateLeveledList_SingleFile(t *testing.T) {
 	if result[0].Level != 0 {
 		t.Errorf("Expected level 0, got %d", result[0].Level)
 	}
-	if result[0].Text != "file.txt" {
-		t.Errorf("Expected text 'file.txt', got '%s'", result[0].Text)
+	if !strings.Contains(result[0].Text, "file.txt") {
+		t.Errorf("Expected text to contain 'file.txt', got '%s'", result[0].Text)
 	}
 }
 
@@ -145,17 +145,17 @@ func Test_GenerateLeveledList_NestedPath(t *testing.T) {
 	}
 
 	// Check first level (dir)
-	if result[0].Level != 0 || result[0].Text != "dir" {
+	if result[0].Level != 0 || !strings.Contains(result[0].Text, "dir") {
 		t.Errorf("Expected level 0 'dir', got level %d '%s'", result[0].Level, result[0].Text)
 	}
 
 	// Check second level (subdir)
-	if result[1].Level != 1 || result[1].Text != "subdir" {
+	if result[1].Level != 1 || !strings.Contains(result[1].Text, "subdir") {
 		t.Errorf("Expected level 1 'subdir', got level %d '%s'", result[1].Level, result[1].Text)
 	}
 
 	// Check third level (file.txt)
-	if result[2].Level != 2 || result[2].Text != "file.txt" {
+	if result[2].Level != 2 || !strings.Contains(result[2].Text, "file.txt") {
 		t.Errorf("Expected level 2 'file.txt', got level %d '%s'", result[2].Level, result[2].Text)
 	}
 }
@@ -175,7 +175,7 @@ func Test_GenerateLeveledList_MultiplePaths(t *testing.T) {
 	// Verify dir1 appears only once
 	dir1Count := 0
 	for _, item := range result {
-		if item.Text == "dir1" {
+		if strings.Contains(item.Text, "dir1") {
 			dir1Count++
 		}
 	}
@@ -198,7 +198,7 @@ func Test_GenerateLeveledList_SharedParent(t *testing.T) {
 	// Verify parent appears only once
 	parentCount := 0
 	for _, item := range result {
-		if item.Text == "parent" && item.Level == 0 {
+		if strings.Contains(item.Text, "parent") && item.Level == 0 {
 			parentCount++
 		}
 	}
@@ -233,6 +233,69 @@ func Test_GenerateLeveledList_DeepNesting(t *testing.T) {
 	for i, item := range result {
 		if item.Level != i {
 			t.Errorf("Expected item %d to have level %d, got %d", i, i, item.Level)
+		}
+	}
+}
+
+func Test_GenerateLeveledList_FilesBeforeDirectories(t *testing.T) {
+	// This is the key test: files should appear before subdirectories at the same level
+	result := GenerateLeveledList([]string{
+		"hello1/hello2/test1.txt",
+		"hello1/hello2/test2.txt",
+		"hello1/hello2/test3.txt",
+		"hello1/test1.txt",
+		"hello1/test2.txt",
+		"hello1/test3.txt",
+	})
+
+	// Expected order:
+	// hello1 (level 0)
+	// test1.txt (level 1) - files first
+	// test2.txt (level 1)
+	// test3.txt (level 1)
+	// hello2 (level 1) - subdirectory after files
+	// test1.txt (level 2)
+	// test2.txt (level 2)
+	// test3.txt (level 2)
+
+	if len(result) != 8 {
+		t.Errorf("Expected 8 items, got %d", len(result))
+	}
+
+	// Check order: hello1
+	if result[0].Level != 0 || !strings.Contains(result[0].Text, "hello1") {
+		t.Errorf("Expected 'hello1' at position 0, got '%s' (level %d)", result[0].Text, result[0].Level)
+	}
+
+	// Files in hello1 should come before hello2 subdirectory
+	// Positions 1-3 should be test1.txt, test2.txt, test3.txt at level 1
+	for i := 1; i <= 3; i++ {
+		if result[i].Level != 1 {
+			t.Errorf("Expected level 1 at position %d, got level %d", i, result[i].Level)
+		}
+		expectedFile := ""
+		switch i {
+		case 1:
+			expectedFile = "test1.txt"
+		case 2:
+			expectedFile = "test2.txt"
+		case 3:
+			expectedFile = "test3.txt"
+		}
+		if !strings.Contains(result[i].Text, expectedFile) {
+			t.Errorf("Expected '%s' at position %d, got '%s'", expectedFile, i, result[i].Text)
+		}
+	}
+
+	// Position 4 should be hello2 subdirectory at level 1
+	if result[4].Level != 1 || !strings.Contains(result[4].Text, "hello2") {
+		t.Errorf("Expected 'hello2' at position 4 (level 1), got '%s' (level %d)", result[4].Text, result[4].Level)
+	}
+
+	// Positions 5-7 should be files in hello2 at level 2
+	for i := 5; i <= 7; i++ {
+		if result[i].Level != 2 {
+			t.Errorf("Expected level 2 at position %d, got level %d", i, result[i].Level)
 		}
 	}
 }

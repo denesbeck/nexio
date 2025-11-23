@@ -172,10 +172,66 @@ func Box(title string, content string) {
 }
 
 func GenerateLeveledList(files []string) pterm.LeveledList {
+	// Sort files to ensure proper order: files before directories at same level
+	sortedFiles := make([]string, len(files))
+	copy(sortedFiles, files)
+	sort.Slice(sortedFiles, func(i, j int) bool {
+		pathI := filepath.ToSlash(sortedFiles[i])
+		pathJ := filepath.ToSlash(sortedFiles[j])
+
+		partsI := strings.Split(pathI, "/")
+		partsJ := strings.Split(pathJ, "/")
+
+		// Compare path components level by level
+		minLen := min(len(partsJ), len(partsI))
+
+		for k := range minLen {
+			if partsI[k] != partsJ[k] {
+				// If we're at the last component of one path, it's a file
+				// Files should come before directories at the same level
+				isFileI := k == len(partsI)-1
+				isFileJ := k == len(partsJ)-1
+
+				if isFileI && !isFileJ {
+					return true // i is a file, j is a directory -> i comes first
+				}
+				if !isFileI && isFileJ {
+					return false // i is a directory, j is a file -> j comes first
+				}
+
+				// Both are either files or directories, sort alphabetically
+				return partsI[k] < partsJ[k]
+			}
+		}
+
+		// One path is a prefix of the other, shorter one comes first (it's a file)
+		return len(partsI) < len(partsJ)
+	})
+
 	list := pterm.LeveledList{}
 	seen := make(map[string]bool)
 
-	for _, file := range files {
+	// Track which paths are directories (not the final file)
+	isDirectory := make(map[string]bool)
+	for _, file := range sortedFiles {
+		parts := strings.Split(filepath.ToSlash(file), "/")
+		currentPath := ""
+		for index, part := range parts {
+			if index > 0 {
+				currentPath += "/"
+			}
+			currentPath += part
+			// Mark as directory if it's not the last component
+			if index < len(parts)-1 {
+				isDirectory[currentPath] = true
+			}
+		}
+	}
+
+	dirStyle := pterm.NewStyle(pterm.FgLightBlue)
+	fileStyle := pterm.NewStyle(pterm.FgLightCyan)
+
+	for _, file := range sortedFiles {
 		parts := strings.Split(filepath.ToSlash(file), "/")
 		currentPath := ""
 
@@ -190,9 +246,17 @@ func GenerateLeveledList(files []string) pterm.LeveledList {
 			}
 			seen[currentPath] = true
 
+			// Apply color based on whether it's a directory or file
+			displayText := part
+			if isDirectory[currentPath] {
+				displayText = dirStyle.Sprint(" " + part + "/")
+			} else {
+				displayText = fileStyle.Sprint(" " + part)
+			}
+
 			list = append(list, pterm.LeveledListItem{
 				Level: index,
-				Text:  part,
+				Text:  displayText,
 			})
 		}
 	}
