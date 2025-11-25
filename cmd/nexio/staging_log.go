@@ -168,7 +168,17 @@ func GetSyncedStagingLogsContent() (result *[]LogFileEntry) {
 		exists := FileExists(entry.Path)
 		if !exists {
 			diff = true
-			RemoveFileAndLog(entry.Id, entry.Op)
+			// Convert operation code to directory name (ADD -> added, MOD -> modified, REM -> removed)
+			opDir := ""
+			switch entry.Op {
+			case "ADD":
+				opDir = "added"
+			case "MOD":
+				opDir = "modified"
+			case "REM":
+				opDir = "removed"
+			}
+			RemoveFileAndLog(entry.Id, opDir)
 		}
 	}
 
