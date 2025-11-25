@@ -80,27 +80,13 @@ func LogEntryLookup(op string, path string) (isLogged bool, logId string, operat
 }
 
 func IsStagingLogsEmpty() bool {
-	Debug("Checking if staging logs are empty")
-	logs, err := os.ReadFile(dirs.StagingLogs)
-	if err != nil {
-		Debug("Failed to read staging logs")
-		MustSucceed(err, "operation failed")
+	Debug("Checking if staging logs are empty.")
+	stagingLogs := GetSyncedStagingLogsContent()
+	if len(*stagingLogs) == 0 {
+		Debug("No staging logs found.")
+		return true
 	}
-	var content []LogFileEntry
-	if len(logs) > 0 {
-		if err = json.Unmarshal(logs, &content); err != nil {
-			Debug("Failed to unmarshal staging logs")
-			MustSucceed(err, "operation failed")
-		}
-		if len(content) == 0 {
-			Debug("Staging logs are empty")
-			return true
-		}
-		Debug("Staging logs are not empty")
-		return false
-	}
-	Debug("Staging logs file is empty")
-	return true
+	return false
 }
 
 func RemoveLogEntry(id string) {
@@ -110,13 +96,13 @@ func RemoveLogEntry(id string) {
 		logs, err := os.ReadFile(dirs.StagingLogs)
 		if err != nil {
 			Debug("Failed to read staging logs")
-			return err
+			MustSucceed(err, "operation failed")
 		}
 		var content []LogFileEntry
 		if len(logs) > 0 {
 			if err = json.Unmarshal(logs, &content); err != nil {
 				Debug("Failed to unmarshal staging logs")
-				return err
+				MustSucceed(err, "operation failed")
 			}
 		}
 		for i, entry := range content {
@@ -170,6 +156,28 @@ func GetStagingLogsContent() (result *[]LogFileEntry) {
 	}
 	Debug("Retrieved %d log entries", len(content))
 	return &content
+}
+
+func GetSyncedStagingLogsContent() (result *[]LogFileEntry) {
+	Debug("Getting synced staging logs content")
+	content := GetStagingLogsContent()
+
+	diff := false
+	// Clean staged files to match filesystem state (e.g., remove deleted files from staging)
+	for _, entry := range *content {
+		exists := FileExists(entry.Path)
+		if !exists {
+			diff = true
+			RemoveFileAndLog(entry.Id, entry.Op)
+		}
+	}
+
+	if diff {
+		// Refetch staged files after cleanup if any entries were removed
+		Debug("Refetching staged files after cleanup...")
+		content = GetStagingLogsContent()
+	}
+	return content
 }
 
 func SortByOperationAndPath(content []LogFileEntry) (result *[]LogFileEntry) {

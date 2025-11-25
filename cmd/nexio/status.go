@@ -28,7 +28,8 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 		Fail(COMMON_RETURN_CODES[001])
 		return 001, nil
 	}
-	content := GetStagingLogsContent()
+
+	content := GetSyncedStagingLogsContent()
 	currentBranch := GetCurrentBranchName()
 	commitCount := CountCommits()
 	lastCommit := GetLastCommit()

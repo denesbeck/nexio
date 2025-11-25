@@ -190,16 +190,17 @@ func ProcessFileList(latestCommitId string, newCommitId string) {
 		Debug("No previous commit, starting with empty file list")
 		fileList = &emptyFileList
 	} else {
-		c := GetFileListContent(latestCommitId)
-		if c != nil {
-			fileList = c
+		fileListContent := GetFileListContent(latestCommitId)
+		if fileListContent != nil {
+			fileList = fileListContent
 			Debug("Using file list from previous commit")
 		} else {
 			fileList = &emptyFileList
 			Debug("No file list found in previous commit")
 		}
 	}
-	stagingLogs := GetStagingLogsContent()
+
+	stagingLogs := GetSyncedStagingLogsContent()
 
 	for _, logEntry := range *stagingLogs {
 		Debug("Processing staging log entry: op=%s, path=%s", logEntry.Op, logEntry.Path)
