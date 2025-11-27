@@ -122,11 +122,20 @@ func TreeList(files []string, sorted bool) {
 	}
 }
 
-func Tree(list pterm.LeveledList, rootText string) {
+func Tree(list pterm.LeveledList, rootText string, render bool) string {
 	root := putils.TreeFromLeveledList(list)
 	root.Text = rootText
 
-	pterm.DefaultTree.WithRoot(root).Render()
+	tree := pterm.DefaultTree.WithRoot(root)
+	if render {
+		tree.Render()
+		return ""
+	}
+	output, err := tree.Srender()
+	if err != nil {
+		MustSucceed(err, "operation failed")
+	}
+	return output
 }
 
 func StyledBranch(branch string) string {
@@ -137,6 +146,11 @@ func StyledBranch(branch string) string {
 func StyledCommit(commit string) string {
 	style := pterm.NewStyle(pterm.FgLightRed)
 	return style.Sprint(commit)
+}
+
+func StyledBoxHeader(header string) string {
+	style := pterm.NewStyle(pterm.FgLightMagenta)
+	return style.Sprint(header)
 }
 
 func Code(code string) string {
@@ -193,10 +207,10 @@ func GenerateLeveledList(files []string) pterm.LeveledList {
 				isFileJ := k == len(partsJ)-1
 
 				if isFileI && !isFileJ {
-					return true // i is a file, j is a directory -> i comes first
+					return false // i is a file, j is a directory -> j comes first
 				}
 				if !isFileI && isFileJ {
-					return false // i is a directory, j is a file -> j comes first
+					return true // i is a directory, j is a file -> i comes first
 				}
 
 				// Both are either files or directories, sort alphabetically

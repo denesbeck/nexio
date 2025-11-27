@@ -46,8 +46,11 @@ func runWorkdirCommand() (returnCode int, workdirContent []FileListEntry) {
 
 	list := GenerateLeveledList(files)
 	BreakLine()
-	Info("Files tracked:")
-	Tree(list, ".")
+	output := Tree(list, ".               ", false)
+
+	Box(Bold(StyledBoxHeader("󱓜 Tracked files")), output)
+	BreakLine()
+	BreakLine()
 
 	return 301, *content
 }
