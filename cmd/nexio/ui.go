@@ -186,7 +186,7 @@ func Box(title string, content string) {
 }
 
 func GenerateLeveledList(files []string) pterm.LeveledList {
-	// Sort files to ensure proper order: files before directories at same level
+	// Sort files to ensure proper order: directories before files at same level
 	sortedFiles := make([]string, len(files))
 	copy(sortedFiles, files)
 	sort.Slice(sortedFiles, func(i, j int) bool {
@@ -202,15 +202,15 @@ func GenerateLeveledList(files []string) pterm.LeveledList {
 		for k := range minLen {
 			if partsI[k] != partsJ[k] {
 				// If we're at the last component of one path, it's a file
-				// Files should come before directories at the same level
+				// Directories should come before files at the same level
 				isFileI := k == len(partsI)-1
 				isFileJ := k == len(partsJ)-1
 
 				if isFileI && !isFileJ {
-					return false // i is a file, j is a directory -> j comes first
+					return false // i is a file, j is a directory -> j (directory) comes first
 				}
 				if !isFileI && isFileJ {
-					return true // i is a directory, j is a file -> i comes first
+					return true // i is a directory, j is a file -> i (directory) comes first
 				}
 
 				// Both are either files or directories, sort alphabetically

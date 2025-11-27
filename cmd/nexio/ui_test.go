@@ -237,8 +237,8 @@ func Test_GenerateLeveledList_DeepNesting(t *testing.T) {
 	}
 }
 
-func Test_GenerateLeveledList_FilesBeforeDirectories(t *testing.T) {
-	// This is the key test: files should appear before subdirectories at the same level
+func Test_GenerateLeveledList_DirectoriesBeforeFiles(t *testing.T) {
+	// This is the key test: directories should appear before files at the same level
 	result := GenerateLeveledList([]string{
 		"hello1/hello2/test1.txt",
 		"hello1/hello2/test2.txt",
@@ -250,13 +250,13 @@ func Test_GenerateLeveledList_FilesBeforeDirectories(t *testing.T) {
 
 	// Expected order:
 	// hello1 (level 0)
-	// test1.txt (level 1) - files first
-	// test2.txt (level 1)
-	// test3.txt (level 1)
-	// hello2 (level 1) - subdirectory after files
+	// hello2 (level 1) - subdirectory first
 	// test1.txt (level 2)
 	// test2.txt (level 2)
 	// test3.txt (level 2)
+	// test1.txt (level 1) - files after subdirectories
+	// test2.txt (level 1)
+	// test3.txt (level 1)
 
 	if len(result) != 8 {
 		t.Errorf("Expected 8 items, got %d", len(result))
@@ -267,19 +267,23 @@ func Test_GenerateLeveledList_FilesBeforeDirectories(t *testing.T) {
 		t.Errorf("Expected 'hello1' at position 0, got '%s' (level %d)", result[0].Text, result[0].Level)
 	}
 
-	// Files in hello1 should come before hello2 subdirectory
-	// Positions 1-3 should be test1.txt, test2.txt, test3.txt at level 1
-	for i := 1; i <= 3; i++ {
-		if result[i].Level != 1 {
-			t.Errorf("Expected level 1 at position %d, got level %d", i, result[i].Level)
+	// Position 1 should be hello2 subdirectory at level 1 (directories come first)
+	if result[1].Level != 1 || !strings.Contains(result[1].Text, "hello2") {
+		t.Errorf("Expected 'hello2' at position 1 (level 1), got '%s' (level %d)", result[1].Text, result[1].Level)
+	}
+
+	// Positions 2-4 should be files in hello2 at level 2
+	for i := 2; i <= 4; i++ {
+		if result[i].Level != 2 {
+			t.Errorf("Expected level 2 at position %d, got level %d", i, result[i].Level)
 		}
 		expectedFile := ""
 		switch i {
-		case 1:
-			expectedFile = "test1.txt"
 		case 2:
-			expectedFile = "test2.txt"
+			expectedFile = "test1.txt"
 		case 3:
+			expectedFile = "test2.txt"
+		case 4:
 			expectedFile = "test3.txt"
 		}
 		if !strings.Contains(result[i].Text, expectedFile) {
@@ -287,15 +291,10 @@ func Test_GenerateLeveledList_FilesBeforeDirectories(t *testing.T) {
 		}
 	}
 
-	// Position 4 should be hello2 subdirectory at level 1
-	if result[4].Level != 1 || !strings.Contains(result[4].Text, "hello2") {
-		t.Errorf("Expected 'hello2' at position 4 (level 1), got '%s' (level %d)", result[4].Text, result[4].Level)
-	}
-
-	// Positions 5-7 should be files in hello2 at level 2
+	// Positions 5-7 should be test1.txt, test2.txt, test3.txt at level 1 (after subdirectories)
 	for i := 5; i <= 7; i++ {
-		if result[i].Level != 2 {
-			t.Errorf("Expected level 2 at position %d, got level %d", i, result[i].Level)
+		if result[i].Level != 1 {
+			t.Errorf("Expected level 1 at position %d, got level %d", i, result[i].Level)
 		}
 	}
 }
