@@ -25,9 +25,7 @@ var initCmd = &cobra.Command{
 func runInitCommand() {
 	if _, err := os.Stat(dirs.Root); !os.IsNotExist(err) {
 		Debug("%s", COMMON_RETURN_CODES[003])
-		BreakLine()
 		Fail(COMMON_RETURN_CODES[003])
-		BreakLine()
 		return
 	}
 
