@@ -139,13 +139,18 @@ func displayInteractiveCommitSuccess(commitId string, addCount, modCount, remCou
 	}
 
 	messages := []string{
-		"Registering commit (" + StyledCommit(shortCommitId) + ")...        "}
+		"Validating staging area...      ",
+		"Processing files...             ",
+		"Writing commit metadata...      ",
+		"Updating branch pointers...     "}
 	stop := Spinner(messages, false)
 	if os.Getenv("NEXIO_ENV") != "test" {
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 	stop()
 
+	BreakLine()
+	Success("Commit registered! (" + StyledCommit(shortCommitId) + ")")
 	BreakLine()
 
 	Info("Changes:")
@@ -186,7 +191,21 @@ func runCommitCommand(message string) (returnCode int, commitId string) {
 
 	_, commitId = runCoreCommitCommand(message)
 
+	BreakLine()
+	messages := []string{
+		"Validating staging area...      ",
+		"Processing files...             ",
+		"Writing commit metadata...      ",
+		"Updating branch pointers...     "}
+	stop := Spinner(messages, false)
+	if os.Getenv("NEXIO_ENV") != "test" {
+		time.Sleep(2 * time.Second)
+	}
+	stop()
+	BreakLine()
+
 	Success(COMMIT_RETURN_CODES[702])
+	BreakLine()
 	return 702, commitId
 }
 
