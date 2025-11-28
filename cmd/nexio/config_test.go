@@ -200,3 +200,97 @@ func Test_GetConfig_UserNotSet(t *testing.T) {
 
 	os.RemoveAll(namespace)
 }
+
+func Test_SetConfig_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	returnCode := setConfig("name", "testuser")
+	if returnCode != 001 {
+		t.Errorf("Expected return code 001 (not initialized), got %d", returnCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_GetConfig_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	returnCode, _ := getConfig("name")
+	if returnCode != 001 {
+		t.Errorf("Expected return code 001 (not initialized), got %d", returnCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_GetDefaultBranch_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	returnCode, _ := getDefaultBranch()
+	if returnCode != 001 {
+		t.Errorf("Expected return code 001 (not initialized), got %d", returnCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_SetDefaultBranch_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	returnCode := setDefaultBranch("main")
+	if returnCode != 001 {
+		t.Errorf("Expected return code 001 (not initialized), got %d", returnCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_SetDefaultBranch_Success(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create a new branch
+	runNewCommand("new-branch", "", "")
+
+	// Switch back to main
+	runSwitchCommand("main")
+
+	// Set default branch to the new branch
+	returnCode := setDefaultBranch("new-branch")
+	if returnCode != 602 {
+		t.Errorf("Expected return code 602 (success), got %d", returnCode)
+	}
+
+	// Verify default branch was changed
+	_, defaultBranch := getDefaultBranch()
+	if defaultBranch != "new-branch" {
+		t.Errorf("Expected default branch 'new-branch', got '%s'", defaultBranch)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_SetConfig_UpdatesExistingValue(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Set initial value
+	setConfig("name", "initial-name")
+	_, config := getConfig("name")
+	if config.Name != "initial-name" {
+		t.Errorf("Expected name 'initial-name', got '%s'", config.Name)
+	}
+
+	// Update value
+	setConfig("name", "updated-name")
+	_, config = getConfig("name")
+	if config.Name != "updated-name" {
+		t.Errorf("Expected name 'updated-name', got '%s'", config.Name)
+	}
+
+	os.RemoveAll(namespace)
+}

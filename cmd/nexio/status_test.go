@@ -106,3 +106,75 @@ func Test_StatusCommand(t *testing.T) {
 
 	os.RemoveAll(namespace)
 }
+
+func Test_StatusCommand_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	returnCode, _ := runStatusCommand()
+	if returnCode != 001 {
+		t.Errorf("Expected return code 001 (not initialized), got %d", returnCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_StatusCommand_WithModifiedFiles(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create and commit a file
+	file := namespace + "modified_test.txt"
+	os.WriteFile(file, []byte("original content"), 0644)
+	runAddCommand(file, false)
+	runCommitCommand("Initial commit")
+
+	// Modify the file
+	os.WriteFile(file, []byte("modified content"), 0644)
+
+	// Run status - should show the file as modified
+	returnCode, _ := runStatusCommand()
+	if returnCode != 502 {
+		t.Errorf("Expected return code 502, got %d", returnCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_StatusCommand_WithDeletedFiles(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create and commit a file
+	file := namespace + "deleted_test.txt"
+	os.WriteFile(file, []byte("content"), 0644)
+	runAddCommand(file, false)
+	runCommitCommand("Initial commit")
+
+	// Delete the file
+	os.Remove(file)
+
+	// Run status - should show the file as deleted
+	returnCode, _ := runStatusCommand()
+	if returnCode != 502 {
+		t.Errorf("Expected return code 502, got %d", returnCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_StatusCommand_EmptyRepository(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Run status with no files - should return empty staging
+	returnCode, stagingLogs := runStatusCommand()
+	if returnCode != 502 {
+		t.Errorf("Expected return code 502, got %d", returnCode)
+	}
+	if len(stagingLogs) != 0 {
+		t.Errorf("Expected empty staging logs, got %d entries", len(stagingLogs))
+	}
+
+	os.RemoveAll(namespace)
+}

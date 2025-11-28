@@ -382,3 +382,122 @@ func Test_ValidatePath(t *testing.T) {
 		})
 	}
 }
+
+func Test_GetRepositorySize(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create some test files to measure
+	testFile := namespace + "test_size.txt"
+	os.WriteFile(testFile, []byte("test content for size measurement"), 0644)
+
+	// Test GetRepositorySize
+	size := GetRepositorySize()
+
+	// Should return a formatted size string
+	if size == "" || size == "N/A" {
+		t.Errorf("Expected valid size string, got '%s'", size)
+	}
+
+	// Size should contain a unit (B, KB, MB, or GB)
+	validUnits := []string{"B", "KB", "MB", "GB"}
+	hasValidUnit := false
+	for _, unit := range validUnits {
+		if len(size) >= len(unit) && size[len(size)-len(unit):] == unit {
+			hasValidUnit = true
+			break
+		}
+	}
+	if !hasValidUnit {
+		t.Errorf("Size '%s' should end with a valid unit (B, KB, MB, GB)", size)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_formatSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		bytes    int64
+		expected string
+	}{
+		{
+			name:     "zero bytes",
+			bytes:    0,
+			expected: "0 B",
+		},
+		{
+			name:     "small bytes",
+			bytes:    512,
+			expected: "512 B",
+		},
+		{
+			name:     "exactly 1 KB",
+			bytes:    1024,
+			expected: "1.0 KB",
+		},
+		{
+			name:     "kilobytes",
+			bytes:    2048,
+			expected: "2.0 KB",
+		},
+		{
+			name:     "fractional kilobytes",
+			bytes:    1536,
+			expected: "1.5 KB",
+		},
+		{
+			name:     "exactly 1 MB",
+			bytes:    1024 * 1024,
+			expected: "1.0 MB",
+		},
+		{
+			name:     "megabytes",
+			bytes:    5 * 1024 * 1024,
+			expected: "5.0 MB",
+		},
+		{
+			name:     "exactly 1 GB",
+			bytes:    1024 * 1024 * 1024,
+			expected: "1.0 GB",
+		},
+		{
+			name:     "gigabytes",
+			bytes:    2 * 1024 * 1024 * 1024,
+			expected: "2.0 GB",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			result := formatSize(test.bytes)
+			if result != test.expected {
+				t.Errorf("Expected '%s' for %d bytes, got '%s'", test.expected, test.bytes, result)
+			}
+		})
+	}
+}
+
+func Test_IsValidBranchName_EdgeCases(t *testing.T) {
+	tests := []struct {
+		branchName string
+		expected   bool
+	}{
+		{"/invalid-start", false},     // starts with /
+		{"valid/nested/branch", true}, // valid nested
+		{"a", true},                   // single char
+		{"123", true},                 // numeric
+		{"feature-123", true},         // with numbers
+		{"feature_123", true},         // underscore with numbers
+		{"UPPERCASE", true},           // uppercase
+		{"Mixed-Case_Name", true},     // mixed case
+		{"ends-with-slash/", false},   // ends with /
+	}
+
+	for _, test := range tests {
+		result := IsValidBranchName(test.branchName)
+		if result != test.expected {
+			t.Errorf("Expected %v for branch name '%s', but got %v", test.expected, test.branchName, result)
+		}
+	}
+}

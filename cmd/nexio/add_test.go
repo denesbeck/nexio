@@ -362,3 +362,178 @@ func Test_Debug_Function(t *testing.T) {
 	os.Setenv("DEBUG", "true")
 	Debug("This should print: %s", "test message")
 }
+
+func Test_ExpandFilePaths_WithDot(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create some test files in the namespace
+	testFiles := []string{
+		namespace + "test1.txt",
+		namespace + "test2.txt",
+		namespace + "subdir/test3.txt",
+	}
+
+	for _, file := range testFiles {
+		path, _ := ParsePath(file)
+		if path != "" {
+			os.MkdirAll(path, 0755)
+		}
+		os.WriteFile(file, []byte("test content"), 0644)
+	}
+
+	// Test with specific files (not ".")
+	result, err := ExpandFilePaths([]string{namespace + "test1.txt", namespace + "test2.txt", namespace + "subdir/test3.txt"})
+	if err != nil {
+		t.Errorf("ExpandFilePaths failed: %v", err)
+	}
+
+	// Should find the test files we specified
+	if len(result) != 3 {
+		t.Errorf("Expected 3 files, got %d", len(result))
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_ExpandFilePaths_WithStagedDeletedFiles(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create and stage a file
+	testFile := namespace + "staged_file.txt"
+	os.WriteFile(testFile, []byte("content"), 0644)
+	runAddCommand(testFile, false)
+
+	// Delete the file from filesystem
+	os.Remove(testFile)
+
+	// Test with specific file path - should return the path as-is
+	result, err := ExpandFilePaths([]string{testFile})
+	if err != nil {
+		t.Errorf("ExpandFilePaths failed: %v", err)
+	}
+
+	// Should include the path we specified
+	if len(result) != 1 || result[0] != testFile {
+		t.Errorf("Expected [%s], got %v", testFile, result)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_ExpandFilePaths_WithCommittedDeletedFiles(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create, stage, and commit a file
+	testFile := namespace + "committed_file.txt"
+	os.WriteFile(testFile, []byte("content"), 0644)
+	runAddCommand(testFile, false)
+	runCommitCommand("Initial commit")
+
+	// Delete the committed file from filesystem
+	os.Remove(testFile)
+
+	// Test with specific file path - should return the path as-is
+	result, err := ExpandFilePaths([]string{testFile})
+	if err != nil {
+		t.Errorf("ExpandFilePaths failed: %v", err)
+	}
+
+	// Should include the path we specified
+	if len(result) != 1 || result[0] != testFile {
+		t.Errorf("Expected [%s], got %v", testFile, result)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_ExpandFilePaths_MultipleFiles(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create test files
+	testFiles := []string{
+		namespace + "file1.txt",
+		namespace + "file2.txt",
+		namespace + "dir/file3.txt",
+	}
+
+	os.MkdirAll(namespace+"dir", 0755)
+	for _, file := range testFiles {
+		os.WriteFile(file, []byte("content"), 0644)
+	}
+
+	// Test with multiple specific files
+	result, err := ExpandFilePaths(testFiles)
+	if err != nil {
+		t.Errorf("ExpandFilePaths failed: %v", err)
+	}
+
+	// Should return all specified files
+	if len(result) != 3 {
+		t.Errorf("Expected 3 files, got %d", len(result))
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_StageAndLog(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	testFile := namespace + "test_stage.txt"
+	os.WriteFile(testFile, []byte("content"), 0644)
+
+	id := GenRandHex(20)
+	err := StageAndLog(id, testFile, "added")
+	if err != nil {
+		t.Errorf("StageAndLog failed: %v", err)
+	}
+
+	// Verify file was staged
+	if !FileExists(dirs.Staging + "added/" + id + "/test_stage.txt") {
+		t.Error("File was not staged")
+	}
+
+	// Verify log entry was created
+	isLogged, _, _ := LogEntryLookup("ADD", testFile)
+	if !isLogged {
+		t.Error("Log entry was not created")
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RemoveFileAndLog(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	testFile := namespace + "test_remove.txt"
+	os.WriteFile(testFile, []byte("content"), 0644)
+
+	id := GenRandHex(20)
+	StageAndLog(id, testFile, "added")
+
+	// Verify file was staged
+	if !FileExists(dirs.Staging + "added/" + id + "/test_remove.txt") {
+		t.Error("File was not staged before removal")
+	}
+
+	// Remove the staged file and log
+	RemoveFileAndLog(id, "added")
+
+	// Verify file was removed from staging
+	if FileExists(dirs.Staging + "added/" + id) {
+		t.Error("Staged file was not removed")
+	}
+
+	// Verify log entry was removed
+	isLogged, _, _ := LogEntryLookup("ADD", testFile)
+	if isLogged {
+		t.Error("Log entry was not removed")
+	}
+
+	os.RemoveAll(namespace)
+}

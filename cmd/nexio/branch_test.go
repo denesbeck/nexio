@@ -245,6 +245,182 @@ func Test_SwitchBranchCurrent(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
+func Test_RunBranchCommand(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create some branches
+	runNewCommand("test-branch-1", "", "")
+	runNewCommand("test-branch-2", "", "")
+
+	// Test runBranchCommand - should list all branches
+	// Just test that it doesn't panic
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("runBranchCommand panicked: %v", r)
+		}
+	}()
+
+	runBranchCommand()
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunBranchCommand_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("runBranchCommand panicked: %v", r)
+		}
+	}()
+
+	runBranchCommand()
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunCurrentCommand(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Create and switch to a branch
+	runNewCommand("test-branch", "", "")
+
+	// Test runCurrentCommand - should output current branch name
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("runCurrentCommand panicked: %v", r)
+		}
+	}()
+
+	runCurrentCommand()
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunCurrentCommand_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("runCurrentCommand panicked: %v", r)
+		}
+	}()
+
+	runCurrentCommand()
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunDefaultCommand(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Test runDefaultCommand - should output default branch name
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("runDefaultCommand panicked: %v", r)
+		}
+	}()
+
+	runDefaultCommand()
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunDefaultCommand_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("runDefaultCommand panicked: %v", r)
+		}
+	}()
+
+	runDefaultCommand()
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunNewCommand_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	statusCode := runNewCommand("test-branch", "", "")
+	if statusCode != 001 {
+		t.Errorf("Expected status code 001 (not initialized), got %d", statusCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunNewCommand_BothFromCommitAndBranch(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Test error when both from-commit and from-branch are specified
+	statusCode := runNewCommand("test-branch", "abc123", "main")
+	if statusCode != 202 {
+		t.Errorf("Expected status code 202 (can't use both flags), got %d", statusCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunNewCommand_FromNonExistentBranch(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Test error when from-branch doesn't exist
+	statusCode := runNewCommand("test-branch", "", "nonexistent-branch")
+	if statusCode != 203 {
+		t.Errorf("Expected status code 203 (branch not found), got %d", statusCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunDropCommand_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	statusCode := runDropCommand("test-branch")
+	if statusCode != 001 {
+		t.Errorf("Expected status code 001 (not initialized), got %d", statusCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunDropCommand_BranchNotFound(t *testing.T) {
+	os.RemoveAll(namespace)
+	runInitCommand()
+
+	// Test error when branch doesn't exist
+	statusCode := runDropCommand("nonexistent-branch")
+	if statusCode != 207 {
+		t.Errorf("Expected status code 207 (branch not found), got %d", statusCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
+func Test_RunSwitchCommand_NotInitialized(t *testing.T) {
+	os.RemoveAll(namespace)
+
+	// Test when not initialized
+	statusCode := runSwitchCommand("test-branch")
+	if statusCode != 001 {
+		t.Errorf("Expected status code 001 (not initialized), got %d", statusCode)
+	}
+
+	os.RemoveAll(namespace)
+}
+
 // Test: new, switch, drop, current, default
 func Test_Branching(t *testing.T) {
 	os.RemoveAll(namespace)

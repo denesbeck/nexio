@@ -120,3 +120,94 @@ allow: []
 		t.Errorf("Expected 0 allow patterns, got %d", len(allow))
 	}
 }
+
+func Test_readRules_ValidFile(t *testing.T) {
+	// Create a valid rules file
+	rulesContent := `ignore:
+  - "*.log"
+  - "node_modules"
+allow:
+  - "important.log"
+`
+	err := os.WriteFile(".nexio.rules.yml", []byte(rulesContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test rules file: %v", err)
+	}
+	defer os.Remove(".nexio.rules.yml")
+
+	rules, err := readRules()
+	if err != nil {
+		t.Errorf("readRules should succeed with valid file: %v", err)
+	}
+
+	if rules == nil {
+		t.Fatal("Expected non-nil rules")
+	}
+
+	if len(rules.Ignore) != 2 {
+		t.Errorf("Expected 2 ignore patterns, got %d", len(rules.Ignore))
+	}
+
+	if len(rules.Allow) != 1 {
+		t.Errorf("Expected 1 allow pattern, got %d", len(rules.Allow))
+	}
+}
+
+func Test_readRules_NoFile(t *testing.T) {
+	// Ensure no rules file exists
+	os.Remove(".nexio.rules.yml")
+
+	rules, err := readRules()
+	if err == nil {
+		t.Errorf("readRules should return error when file doesn't exist")
+	}
+
+	if rules != nil {
+		t.Errorf("Expected nil rules when file doesn't exist")
+	}
+}
+
+func Test_ShouldIgnore_EmptyRulesFile(t *testing.T) {
+	// Create a rules file with empty rules
+	emptyRules := `ignore: []
+allow: []
+`
+	err := os.WriteFile(".nexio.rules.yml", []byte(emptyRules), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test rules file: %v", err)
+	}
+	defer os.Remove(".nexio.rules.yml")
+
+	// With empty rules, nothing should be ignored
+	result := ShouldIgnore("test.txt")
+	if result {
+		t.Errorf("Expected file to not be ignored when rules are empty")
+	}
+}
+
+func Test_pathToRegexp_WithRegexPatterns(t *testing.T) {
+	// Create a rules file with regex patterns (not glob patterns)
+	rulesContent := `ignore:
+  - "^test.*\\.log$"
+allow:
+  - "^important.*$"
+`
+	err := os.WriteFile(".nexio.rules.yml", []byte(rulesContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test rules file: %v", err)
+	}
+	defer os.Remove(".nexio.rules.yml")
+
+	ignore, allow, err := pathToRegexp()
+	if err != nil {
+		t.Errorf("pathToRegexp should not fail: %v", err)
+	}
+
+	if len(ignore) != 1 {
+		t.Errorf("Expected 1 ignore patterns, got %d", len(ignore))
+	}
+
+	if len(allow) != 1 {
+		t.Errorf("Expected 1 allow pattern, got %d", len(allow))
+	}
+}
