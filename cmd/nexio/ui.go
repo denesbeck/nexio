@@ -76,6 +76,11 @@ func Text(content string, icon string) {
 	pterm.Println(iconStyle.Sprint(icon) + "  " + content)
 }
 
+func Icon(icon string) string {
+	iconStyle := pterm.NewStyle(pterm.FgLightCyan)
+	return iconStyle.Sprint(icon)
+}
+
 func BreakLine() {
 	pterm.Println()
 }

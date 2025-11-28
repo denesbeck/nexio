@@ -74,7 +74,7 @@ var CONFIG_RETURN_CODES = map[int]string{
 
 var COMMIT_RETURN_CODES = map[int]string{
 	701: "Nothing to commit.",
-	702: "Commit success.",
+	702: "Commit registered successfully.",
 }
 
 var REMOVE_RETURN_CODES = map[int]string{

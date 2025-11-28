@@ -226,3 +226,42 @@ func TimeAgo(timestamp string) string {
 		return fmt.Sprintf("%d years ago", years)
 	}
 }
+
+func GetRepositorySize() string {
+	var totalSize int64
+
+	err := filepath.Walk(dirs.Root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Continue walking even if there's an error
+		}
+		if !info.IsDir() {
+			totalSize += info.Size()
+		}
+		return nil
+	})
+
+	if err != nil {
+		return "N/A"
+	}
+
+	return formatSize(totalSize)
+}
+
+func formatSize(bytes int64) string {
+	const (
+		KB = 1024
+		MB = KB * 1024
+		GB = MB * 1024
+	)
+
+	switch {
+	case bytes >= GB:
+		return fmt.Sprintf("%.1f GB", float64(bytes)/float64(GB))
+	case bytes >= MB:
+		return fmt.Sprintf("%.1f MB", float64(bytes)/float64(MB))
+	case bytes >= KB:
+		return fmt.Sprintf("%.1f KB", float64(bytes)/float64(KB))
+	default:
+		return fmt.Sprintf("%d B", bytes)
+	}
+}

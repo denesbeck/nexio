@@ -86,7 +86,7 @@ func runHistoryCommand() (returnCode int, history []History) {
 		Debug("Displaying %d log entries for commit", len(logs))
 
 		logsFormatted := FormatLogs(logs)
-		boxContent := fmt.Sprintf("Author:  %s\nDate:    %s\nMessage: %s",
+		boxContent := fmt.Sprintf(Icon("")+"  Author:  %s\n"+Icon("")+"  Date:    %s\n"+Icon("")+"  Message: %s",
 			author,
 			TimeAgo(commit.Timestamp),
 			metadata.Message,
@@ -95,7 +95,7 @@ func runHistoryCommand() (returnCode int, history []History) {
 		add, mod, rem := CountOps(logs)
 
 		if logsFormatted != "" {
-			boxContent += "\nFiles: " + Code(fmt.Sprintf("+%d -%d ~%d", add, rem, mod)) + "\n" + logsFormatted
+			boxContent += "\n\n" + Icon("") + "  Files: " + Code(fmt.Sprintf("+%d -%d ~%d", add, rem, mod)) + "\n" + logsFormatted
 		}
 
 		Box(Bold(StyledCommit(" "+commit.Id[:10])), boxContent)
