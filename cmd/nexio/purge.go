@@ -29,7 +29,7 @@ func runPurgeCommand() {
 		return
 	}
 	BreakLine()
-	Warning("WARNING: Destructive Operation")
+	Warning("WARNING: Destructive Operation!")
 	BreakLine()
 	List("This will permanently delete:", []string{
 		"All commits and history",
@@ -39,6 +39,9 @@ func runPurgeCommand() {
 
 	BreakLine()
 	Text("Location: "+Code(dirs.Root), "")
+	BreakLine()
+	repoSize := GetRepositorySize()
+	Text(Bold("Size: ")+repoSize, "")
 	BreakLine()
 
 	var result bool
