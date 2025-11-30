@@ -6,6 +6,8 @@
 
 A lightweight version control system inspired by Git, built from scratch in Go. Nexio implements core version control concepts including staging, commits, branching, and history tracking.
 
+![nexio_showcase_s](https://github.com/user-attachments/assets/dc2aea8f-f95d-45c4-aaf4-cae55433471f)
+
 ## Overview
 
 Nexio is an educational project that demonstrates the fundamental principles behind modern version control systems. It provides a simplified implementation of Git-like functionality, making it easier to understand how version control works under the hood.
