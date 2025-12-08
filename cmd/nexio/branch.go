@@ -75,8 +75,19 @@ var dropCmd = &cobra.Command{
 	Use:     "drop",
 	Short:   "Delete a branch",
 	Example: "nexio drop <branch-name>",
-	Args:    cobra.MinimumNArgs(1),
+	Args:    cobra.ArbitraryArgs,
 	Run: func(_ *cobra.Command, args []string) {
+		if len(args) == 0 {
+			branchName := selectBranch("drop")
+			if branchName == "" {
+				return
+			}
+			Debug("Starting drop branch command: branch=%s", branchName)
+			BreakLine()
+			runDropCommand(branchName)
+			BreakLine()
+			return
+		}
 		Debug("Starting drop branch command with args: %v", args)
 		for _, arg := range args {
 			runDropCommand(arg)
@@ -88,11 +99,92 @@ var switchCmd = &cobra.Command{
 	Use:     "switch",
 	Short:   "Switch to a branch",
 	Example: "nexio switch <branch-name>",
-	Args:    cobra.ExactArgs(1),
+	Args:    cobra.MaximumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
+		if len(args) == 0 {
+			branchName := selectBranch("switch to")
+			if branchName == "" {
+				return
+			}
+			Debug("Starting switch branch command: branch=%s", branchName)
+			BreakLine()
+			runSwitchCommand(branchName)
+			BreakLine()
+			return
+		}
 		Debug("Starting switch branch command: branch=%s", args[0])
 		runSwitchCommand(args[0])
 	},
+}
+
+func selectBranch(action string) string {
+	initialized := IsInitialized()
+	if !initialized {
+		Fail(COMMON_RETURN_CODES[001])
+		return ""
+	}
+
+	branches := ListBranches()
+	if len(branches) == 0 {
+		Fail("No branches available")
+		return ""
+	}
+
+	if len(branches) == 1 {
+		switch action {
+		case "switch to":
+			Info("No other branches available to switch to.")
+		case "drop":
+			Info("No branches available to drop.")
+		}
+		return ""
+	}
+
+	currentBranch := GetCurrentBranchName()
+	defaultBranch := GetDefaultBranchName()
+
+	options := make([]string, len(branches))
+	for i, branch := range branches {
+		option := branch
+		if branch == defaultBranch {
+			option += " 󰨐"
+		}
+		if branch == currentBranch {
+			option += " (current)"
+		}
+		options[i] = option
+	}
+
+	BreakLine()
+	selectedOption, err := pterm.DefaultInteractiveSelect.
+		WithOptions(options).
+		WithDefaultText(pterm.Yellow("?") + pterm.Cyan(" Select branch to "+action)).
+		Show()
+	if err != nil {
+		Debug("Failed to get branch selection: %v", err)
+		Fail("Failed to get branch selection")
+		return ""
+	}
+
+	// Extract branch name from option (remove markers)
+	branchName := selectedOption
+	if idx := indexOf(branchName, " 󰨐"); idx != -1 {
+		branchName = branchName[:idx]
+	}
+	if idx := indexOf(branchName, " (current)"); idx != -1 {
+		branchName = branchName[:idx]
+	}
+
+	return branchName
+}
+
+func indexOf(s, substr string) int {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return i
+		}
+	}
+	return -1
 }
 
 func runBranchCommand() {
