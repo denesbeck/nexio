@@ -1,11 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"slices"
+	"strconv"
 
-	"github.com/fatih/color"
+	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
 )
 
@@ -98,7 +98,7 @@ var switchCmd = &cobra.Command{
 func runBranchCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		color.Red(COMMON_RETURN_CODES[001])
+		Fail(COMMON_RETURN_CODES[001])
 		return
 	}
 
@@ -113,65 +113,70 @@ func runBranchCommand() {
 	defaultBranchName := GetDefaultBranchName()
 	Debug("Current branch: %s, Default branch: %s", currentBranchName, defaultBranchName)
 
+	branchList := []string{}
 	for _, branch := range branches {
 		if branch.IsDir() {
 			branchName := branch.Name()
+			formattedBranchName := branchName
 			if branchName == defaultBranchName {
-				branchName = "* " + branchName
-			} else {
-				branchName = "  " + branchName
+				formattedBranchName = formattedBranchName + " 󰨐"
 			}
-
-			if branch.Name() == currentBranchName {
-				color.Green(branchName)
-			} else {
-				fmt.Println(branchName)
+			if branchName == currentBranchName {
+				formattedBranchName = pterm.LightBlue(formattedBranchName)
 			}
+			branchList = append(branchList, formattedBranchName)
 		}
 	}
+
+	BreakLine()
+	Info("Branches:")
+	TreeList(branchList, true)
+	BreakLine()
+	Text("legend: 󰨐 = default, "+pterm.LightBlue("blue")+" = current", "")
+	BreakLine()
 	Debug("Branch command completed successfully")
 }
 
 func runCurrentCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		color.Red(COMMON_RETURN_CODES[001])
+		Fail(COMMON_RETURN_CODES[001])
 		return
 	}
 
 	currentBranchName := GetCurrentBranchName()
 	Debug("Current branch: %s", currentBranchName)
-	fmt.Println(currentBranchName)
+	Info("Current branch: " + StyledBranch(currentBranchName))
 }
 
 func runDefaultCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		color.Red(COMMON_RETURN_CODES[001])
+		Fail(COMMON_RETURN_CODES[001])
 		return
 	}
 
 	defaultBranchName := GetDefaultBranchName()
 	Debug("Default branch: %s", defaultBranchName)
-	fmt.Println(defaultBranchName)
+	Info("Default branch: " + StyledBranch(defaultBranchName))
 }
 
 func runNewCommand(branchName string, fromCommit string, fromBranch string) int {
 	initialized := IsInitialized()
 	if !initialized {
-		color.Red(COMMON_RETURN_CODES[001])
+		Fail(COMMON_RETURN_CODES[001])
 		return 001
 	}
 
 	if !IsValidBranchName(branchName) {
 		Debug("Invalid branch name: %s", branchName)
-		color.Red(BRANCH_RETURN_CODES[201])
+		Fail(BRANCH_RETURN_CODES[201])
 		return 201
 	}
 
 	if fromCommit != "" && fromBranch != "" {
 		Debug("Cannot create branch from both commit and branch")
-		color.Red(BRANCH_RETURN_CODES[202])
+		Fail(BRANCH_RETURN_CODES[202])
 		return 202
 	}
 
@@ -181,7 +186,7 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 		branches := ListBranches()
 		if !slices.Contains(branches, srcBranch) {
 			Debug("Source branch does not exist: %s", srcBranch)
-			color.Red(BRANCH_RETURN_CODES[203])
+			Fail(BRANCH_RETURN_CODES[203])
 			return 203
 		}
 	} else {
@@ -193,21 +198,21 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 		err := CopyCommitsToBranch(fromCommit, branchName)
 		if err != nil {
 			Debug("Failed to create branch from commit: %v", err)
-			color.Red(BRANCH_RETURN_CODES[204])
+			Fail(BRANCH_RETURN_CODES[204])
 			return 204
 		}
 	} else {
 		Debug("Creating branch from branch: %s", srcBranch)
 		if err := os.Mkdir(dirs.Branches+branchName, 0755); err != nil {
 			Debug("Branch already exists: %s", branchName)
-			color.Red(BRANCH_RETURN_CODES[205])
+			Fail(BRANCH_RETURN_CODES[205])
 			return 205
 		}
 
 		CopyFile(dirs.Branches+srcBranch+"/commits.json", dirs.Branches+branchName+"/commits.json")
 	}
 	Debug("Branch created successfully: %s", branchName)
-	color.Green(BRANCH_RETURN_CODES[206])
+	Success(BRANCH_RETURN_CODES[206])
 	runSwitchCommand(branchName)
 	return 206
 }
@@ -215,87 +220,89 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 func runDropCommand(branchName string) int {
 	initialized := IsInitialized()
 	if !initialized {
-		color.Red(COMMON_RETURN_CODES[001])
+		Fail(COMMON_RETURN_CODES[001])
 		return 001
 	}
 
 	branches := ListBranches()
 	if !slices.Contains(branches, branchName) {
 		Debug("Branch does not exist: %s", branchName)
-		color.Red(BRANCH_RETURN_CODES[207])
+		Fail(BRANCH_RETURN_CODES[207])
 		return 207
 	}
 
 	if currentBranchName := GetCurrentBranchName(); currentBranchName == branchName {
 		Debug("Cannot delete current branch: %s", branchName)
-		color.Red(BRANCH_RETURN_CODES[208])
+		Fail(BRANCH_RETURN_CODES[208])
 		return 208
 	}
 
 	if defaultBranchName := GetDefaultBranchName(); defaultBranchName == branchName {
 		Debug("Cannot delete default branch: %s", branchName)
-		color.Red(BRANCH_RETURN_CODES[209])
+		Fail(BRANCH_RETURN_CODES[209])
 		return 209
 	}
 
 	if err := os.RemoveAll(dirs.Branches + branchName); err != nil {
 		Debug("Failed to delete branch: %s", branchName)
-		color.Red(BRANCH_RETURN_CODES[207])
+		Fail(BRANCH_RETURN_CODES[207])
 		return 207
 	}
 	Debug("Branch deleted successfully: %s", branchName)
-	color.Green(BRANCH_RETURN_CODES[210])
+	Success(BRANCH_RETURN_CODES[210])
 	return 210
 }
 
 func runSwitchCommand(branchName string) int {
 	initialized := IsInitialized()
 	if !initialized {
-		color.Red(COMMON_RETURN_CODES[001])
+		Fail(COMMON_RETURN_CODES[001])
 		return 001
 	}
 
 	currentBranch := GetCurrentBranchName()
 	if currentBranch == branchName {
 		Debug("Already on branch: %s", branchName)
-		color.Red(BRANCH_RETURN_CODES[211])
+		Fail(BRANCH_RETURN_CODES[211])
 		return 211
 	}
 
 	branches := ListBranches()
 	if !slices.Contains(branches, branchName) {
 		Debug("Branch does not exist: %s", branchName)
-		color.Red(BRANCH_RETURN_CODES[212])
+		Fail(BRANCH_RETURN_CODES[212])
 		return 212
 	}
 
 	// Check for uncommitted changes before switching
 	if HasUncommittedChanges() {
-		Debug("Cannot switch branches with uncommitted changes")
-		color.Red(BRANCH_RETURN_CODES[214])
-		color.Yellow("Uncommitted changes:")
+		BreakLine()
+		Fail(BRANCH_RETURN_CODES[214])
+		BreakLine()
 
 		// Show what changes would be lost
-		stagingLogs := GetStagingLogsContent()
+		stagingLogs := GetSyncedStagingLogsContent()
 		if len(*stagingLogs) > 0 {
-			color.Cyan("\nStaged files:")
+			Info("Staged changes (" + strconv.Itoa(len(*stagingLogs)) + ")")
 			PrintLogs(*stagingLogs)
 		}
-		color.Yellow("\nPlease commit or stash your changes before switching branches.")
+		BreakLine()
 
 		modified, deleted := GetModifiedOrDeletedFiles()
-		if len(modified) > 0 {
-			color.Cyan("\nModified files:")
-			for _, file := range modified {
-				color.Yellow("  modified: " + file)
+		if len(modified) > 0 || len(deleted) > 0 {
+			Info("Unstaged changes (" + strconv.Itoa(len(modified)+len(deleted)) + ")")
+			for i, file := range modified {
+				modified[i] = pterm.FgYellow.Sprint(" MOD: ") + file
 			}
-		}
-		if len(deleted) > 0 {
-			color.Cyan("\nDeleted files:")
-			for _, file := range deleted {
-				color.Yellow("  deleted: " + file)
+			for i, file := range deleted {
+				deleted[i] = pterm.FgRed.Sprint(" REM: ") + file
 			}
+			TreeList(modified, false)
+			TreeList(deleted, false)
+			BreakLine()
 		}
+		Warning("Please commit or stash your changes before switching branches.")
+		BreakLine()
 
 		return 214
 	}
@@ -308,17 +315,23 @@ func runSwitchCommand(branchName string) int {
 			RemoveFile("./" + file.Path)
 		}
 	}
-	newBrnachCommitId := GetLastCommitByBranch(branchName).Id
-	Debug("Switching to commit: %s", newBrnachCommitId)
-	if newBrnachCommitId != "" {
-		fileList := GetFileListContent(newBrnachCommitId)
+	newBranchCommitId := GetLastCommitByBranch(branchName).Id
+	Debug("Switching to commit: %s", newBranchCommitId)
+	if newBranchCommitId != "" {
+		fileList := GetFileListContent(newBranchCommitId)
 		for _, file := range *fileList {
 			_, fileName := ParsePath(file.Path)
-			CopyFile(dirs.Commits+file.CommitId+"/"+file.Id+"/"+fileName, "./"+file.Path)
+			src := dirs.Commits + file.CommitId + "/" + file.Id + "/" + fileName
+			dst := "./" + file.Path
+			if err := CopyFile(src, dst); err != nil {
+				Debug("Failed to restore file %s: %v", file.Path, err)
+				Fail("Failed to restore file: " + file.Path)
+				return 215
+			}
 		}
 	}
 	SetBranch(branchName, "current")
 	Debug("Switched to branch: %s", branchName)
-	color.Cyan(BRANCH_RETURN_CODES[213] + branchName)
+	Info(BRANCH_RETURN_CODES[213] + branchName)
 	return 213
 }
