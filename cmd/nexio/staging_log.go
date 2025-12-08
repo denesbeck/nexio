@@ -165,6 +165,9 @@ func GetSyncedStagingLogsContent() (result *[]LogFileEntry) {
 	diff := false
 	// Clean staged files to match filesystem state (e.g., remove deleted files from staging)
 	for _, entry := range *content {
+		if entry.Op == "REM" {
+			continue
+		}
 		exists := FileExists(entry.Path)
 		if !exists {
 			diff = true
