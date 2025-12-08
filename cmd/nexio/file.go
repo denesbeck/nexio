@@ -35,10 +35,12 @@ func CopyFile(src, dst string) error {
 	}
 
 	path, _ := ParsePath(dst)
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		Debug("Creating destination directory: %s", path)
-		if err := os.MkdirAll(path, 0700); err != nil {
-			return err
+	if path != "" {
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			Debug("Creating destination directory: %s", path)
+			if err := os.MkdirAll(path, 0700); err != nil {
+				return err
+			}
 		}
 	}
 
