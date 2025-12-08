@@ -9,9 +9,18 @@ import (
 
 func CopyFile(src, dst string) error {
 	Debug("Copying file from %s to %s", src, dst)
-	sourceFileStat, err := os.Stat(src)
+
+	// Open source file and get stats in one operation (reduces syscalls)
+	source, err := os.Open(src)
 	if err != nil {
-		Debug("Source file does not exist: %s", src)
+		Debug("Failed to open source file: %s", src)
+		return err
+	}
+	defer source.Close()
+
+	sourceFileStat, err := source.Stat()
+	if err != nil {
+		Debug("Failed to stat source file: %s", src)
 		return err
 	}
 
@@ -20,48 +29,53 @@ func CopyFile(src, dst string) error {
 		return os.ErrInvalid
 	}
 
-	source, err := os.Open(src)
-	if err != nil {
-		Debug("Failed to open source file: %s", src)
-		return err
-	}
-	defer source.Close()
-
-	if FileExists(dst) {
-		Debug("Destination file exists, removing: %s", dst)
-		if err := os.Remove(dst); err != nil {
-			return err
-		}
-	}
-
+	// Create destination directory if needed
 	path, _ := ParsePath(dst)
 	if path != "" {
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			Debug("Creating destination directory: %s", path)
-			if err := os.MkdirAll(path, 0700); err != nil {
+		if _, err := os.Stat(path); err != nil {
+			if os.IsNotExist(err) {
+				Debug("Creating destination directory: %s", path)
+				if err := os.MkdirAll(path, 0755); err != nil {
+					Debug("Failed to create destination directory: %s", path)
+					return err
+				}
+			} else {
+				Debug("Failed to stat destination directory: %s", path)
 				return err
 			}
 		}
 	}
 
+	// Create destination file (truncates if exists)
 	destination, err := os.Create(dst)
 	if err != nil {
 		Debug("Failed to create destination file: %s", dst)
 		return err
 	}
-	defer destination.Close()
 
-	_, err = io.Copy(destination, source)
-	if err != nil {
+	// Copy contents
+	_, copyErr := io.Copy(destination, source)
+	syncErr := destination.Sync()
+	closeErr := destination.Close()
+
+	// Handle errors and clean up partial file if needed
+	if copyErr != nil {
+		os.Remove(dst)
 		Debug("Failed to copy file contents")
-		return err
+		return copyErr
 	}
-
-	if err := destination.Sync(); err != nil {
+	if syncErr != nil {
+		os.Remove(dst)
 		Debug("Failed to sync destination file: %s", dst)
-		return err
+		return syncErr
+	}
+	if closeErr != nil {
+		os.Remove(dst)
+		Debug("Failed to close destination file: %s", dst)
+		return closeErr
 	}
 
+	// Preserve source file permissions
 	if err := os.Chmod(dst, sourceFileStat.Mode()); err != nil {
 		Debug("Failed to set permissions on destination file: %s", dst)
 		return err
