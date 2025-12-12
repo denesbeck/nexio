@@ -7,7 +7,10 @@ require (
 	github.com/pterm/pterm v0.12.82
 	github.com/spf13/cobra v1.10.2
 	gopkg.in/yaml.v3 v3.0.1
+	lukechampine.com/blake3 v1.4.1
 )
+
+require github.com/klauspost/cpuid/v2 v2.2.3 // indirect
 
 require (
 	atomicgo.dev/cursor v0.2.0 // indirect

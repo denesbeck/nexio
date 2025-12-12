@@ -6,6 +6,7 @@ import (
 
 type Dirs struct {
 	Root                 string
+	Objects              string
 	Staging              string
 	StagingAdded         string
 	StagingModified      string
@@ -21,6 +22,10 @@ type Dirs struct {
 
 var dirs = Dirs{
 	Root: namespace + ".nexio/",
+
+	// Objects directory for storing blobs
+	Objects: namespace + ".nexio/objects/",
+
 	// Staging directories for `added`, `modified`, `removed` operations.
 	Staging:         namespace + ".nexio/staging/",
 	StagingAdded:    namespace + ".nexio/staging/added/",
