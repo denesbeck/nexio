@@ -291,6 +291,10 @@ func ValidateStagingIntegrity() []string {
 	orphanedIds := []string{}
 
 	for _, entry := range *logs {
+		// REM operations don't have blobs - they just mark files for removal
+		if entry.Op == "REM" {
+			continue
+		}
 		blobExists := BlobExists(entry.BlobHash)
 		if !blobExists {
 			Debug("Found orphaned log entry: %s (path: %s)", entry.Id, entry.Path)
@@ -378,9 +382,14 @@ func GetModifiedOrDeletedFiles() (modified []string, deleted []string) {
 			continue
 		}
 
-		_, fileName := ParsePath(file.Path)
+		// Compare current file hash with committed blob hash
+		currentHash, err := HashFile(file.Path)
+		if err != nil {
+			Debug("Failed to hash file %s: %s", file.Path, err.Error())
+			continue
+		}
 
-		if isModified, _ := IsModified(file.Path, GetDir("commits")+file.CommitId+"/"+file.Id+"/"+fileName); isModified {
+		if currentHash != file.BlobHash {
 			modified = append(modified, file.Path)
 		}
 	}

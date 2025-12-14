@@ -15,18 +15,18 @@ func Test_LogOperation(t *testing.T) {
 	os.WriteFile(path, []byte("test"), 0644)
 
 	// Log an ADD operation
-	LogOperation(id, "ADD", path)
+	LogOperation(id, "ADD", path, "testhash")
 
 	// Check if it was logged using LogEntryLookup
-	found, foundId, foundOp := LogEntryLookup("ADD", path)
+	found, logEntry := LogEntryLookup("ADD", path)
 	if !found {
 		t.Errorf("Expected to find logged operation")
 	}
-	if foundId != id {
-		t.Errorf("Expected id %s, got %s", id, foundId)
+	if logEntry.Id != id {
+		t.Errorf("Expected id %s, got %s", id, logEntry.Id)
 	}
-	if foundOp != "ADD" {
-		t.Errorf("Expected operation ADD, got %s", foundOp)
+	if logEntry.Op != "ADD" {
+		t.Errorf("Expected operation ADD, got %s", logEntry.Op)
 	}
 
 	os.RemoveAll(namespace)
@@ -41,10 +41,10 @@ func Test_RemoveLogEntry(t *testing.T) {
 	os.WriteFile(path, []byte("test"), 0644)
 
 	// Log an operation
-	LogOperation(id, "ADD", path)
+	LogOperation(id, "ADD", path, "testhash")
 
 	// Verify it's there
-	found, _, _ := LogEntryLookup("ADD", path)
+	found, _ := LogEntryLookup("ADD", path)
 	if !found {
 		t.Errorf("Expected to find log entry before removal")
 	}
@@ -53,7 +53,7 @@ func Test_RemoveLogEntry(t *testing.T) {
 	RemoveLogEntry(id)
 
 	// Verify it's gone
-	found, _, _ = LogEntryLookup("ADD", path)
+	found, _ = LogEntryLookup("ADD", path)
 	if found {
 		t.Errorf("Expected log entry to be removed")
 	}
@@ -66,7 +66,7 @@ func Test_LogEntryLookup(t *testing.T) {
 	runInitCommand()
 
 	// Test when entry doesn't exist
-	found, _, _ := LogEntryLookup("ADD", "nonexistent.txt")
+	found, _ := LogEntryLookup("ADD", "nonexistent.txt")
 	if found {
 		t.Errorf("Expected not to find nonexistent entry")
 	}
@@ -75,17 +75,17 @@ func Test_LogEntryLookup(t *testing.T) {
 	id := GenRandHex(20)
 	path := namespace + "test.txt"
 	os.WriteFile(path, []byte("test"), 0644)
-	LogOperation(id, "MOD", path)
+	LogOperation(id, "MOD", path, "testhash")
 
-	found, foundId, foundOp := LogEntryLookup("MOD", path)
+	found, logEntry := LogEntryLookup("MOD", path)
 	if !found {
 		t.Errorf("Expected to find entry")
 	}
-	if foundId != id {
-		t.Errorf("Expected id %s, got %s", id, foundId)
+	if logEntry.Id != id {
+		t.Errorf("Expected id %s, got %s", id, logEntry.Id)
 	}
-	if foundOp != "MOD" {
-		t.Errorf("Expected operation MOD, got %s", foundOp)
+	if logEntry.Op != "MOD" {
+		t.Errorf("Expected operation MOD, got %s", logEntry.Op)
 	}
 
 	os.RemoveAll(namespace)
@@ -222,9 +222,9 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		id2 := GenRandHex(20)
 		id3 := GenRandHex(20)
 
-		LogOperation(id1, "ADD", file1Path)
-		LogOperation(id2, "MOD", file2Path)
-		LogOperation(id3, "REM", file3Path)
+		LogOperation(id1, "ADD", file1Path, "hash1")
+		LogOperation(id2, "MOD", file2Path, "hash2")
+		LogOperation(id3, "REM", file3Path, "hash3")
 
 		result := GetSyncedStagingLogsContent()
 
@@ -393,22 +393,16 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		TruncateLogs()
 	})
 
-	// Test 6: Verify both log entries and staging files are removed
-	t.Run("VerifyLogEntriesAndStagingFilesRemoved", func(t *testing.T) {
+	// Test 6: Verify log entries are removed when file is deleted
+	t.Run("VerifyLogEntriesRemovedOnFileDelete", func(t *testing.T) {
 		testFile := namespace + "log_removal_test.txt"
 		os.WriteFile(testFile, []byte("test"), 0644)
 
 		testId := GenRandHex(20)
 		StageAndLog(testId, testFile, "added")
 
-		// Verify staging file exists
-		stagingPath := dirs.StagingAdded + testId
-		if !FileExists(stagingPath) {
-			t.Errorf("Expected staging file to exist at %s", stagingPath)
-		}
-
 		// Verify log entry exists
-		found, _, _ := LogEntryLookup("ADD", testFile)
+		found, _ := LogEntryLookup("ADD", testFile)
 		if !found {
 			t.Errorf("Expected log entry to exist before sync")
 		}
@@ -416,7 +410,7 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		// Delete the original file
 		os.Remove(testFile)
 
-		// Call GetSyncedStagingLogsContent - should remove both log entry and staging file
+		// Call GetSyncedStagingLogsContent - should remove log entry for deleted file
 		result := GetSyncedStagingLogsContent()
 
 		// Verify log entry is removed
@@ -425,14 +419,9 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		}
 
 		// Verify we can't find the entry anymore
-		found, _, _ = LogEntryLookup("ADD", testFile)
+		found, _ = LogEntryLookup("ADD", testFile)
 		if found {
 			t.Errorf("Expected log entry to be removed")
-		}
-
-		// Verify staging file is also removed
-		if FileExists(stagingPath) {
-			t.Errorf("Expected staging file to be removed at %s", stagingPath)
 		}
 
 		TruncateLogs()

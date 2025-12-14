@@ -30,7 +30,7 @@ func Test_IsFileDeleted(t *testing.T) {
 
 	os.Remove(file)
 
-	isCommitted, _, _ := GetFileMetadata(file)
+	isCommitted, _ := GetFileMetadata(file)
 
 	if !isCommitted {
 		t.Errorf("Expected file %s to be committed", file)
@@ -54,21 +54,21 @@ func Test_GetFileMetadata(t *testing.T) {
 	runAddCommand(file, false)
 	runCommitCommand("test commit")
 
-	isCommitted, commitId, fileId := GetFileMetadata(file)
+	isCommitted, metadata := GetFileMetadata(file)
 
 	if !isCommitted {
 		t.Errorf("Expected file %s to be committed", file)
 	}
 
-	if commitId == "" {
+	if metadata.CommitId == "" {
 		t.Errorf("Expected commit ID to not be empty")
 	}
 
-	if fileId == "" {
+	if metadata.Id == "" {
 		t.Errorf("Expected file ID to not be empty")
 	}
 
-	isCommitted, _, _ = GetFileMetadata(namespace + "nonexistent.txt")
+	isCommitted, _ = GetFileMetadata(namespace + "nonexistent.txt")
 	if isCommitted {
 		t.Errorf("Expected file %s to not be committed", namespace+"nonexistent.txt")
 	}

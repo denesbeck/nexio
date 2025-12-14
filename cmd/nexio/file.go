@@ -128,7 +128,7 @@ func EmptyDir(path string) error {
 }
 
 func FileExists(path string) bool {
-	Debug("Checking if file exists: %s = %v", path)
+	Debug("Checking if file exists: %s", path)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		Debug("File exists: %s", path)
 		return true

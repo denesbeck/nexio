@@ -14,23 +14,15 @@ func TestRemove(t *testing.T) {
 	os.Create(file)
 
 	runAddCommand(file, false)
-	isLogged, logId, operation := LogEntryLookup("*", file)
-	if !isLogged && operation != "ADD" {
-		t.Errorf("Expected log entry to be added, got %s", operation)
-	}
-	exists := FileExists(dirs.Staging + "added/" + logId + "/file.txt")
-	if !exists {
-		t.Errorf("Expected file to exist in staging area")
+	isLogged, logEntry := LogEntryLookup("*", file)
+	if !isLogged || logEntry.Op != "ADD" {
+		t.Errorf("Expected log entry to be added with ADD operation, got %s", logEntry.Op)
 	}
 
 	runRemoveCommand(file)
-	isLogged, logId, operation = LogEntryLookup("*", file)
+	isLogged, _ = LogEntryLookup("*", file)
 	if isLogged {
-		t.Errorf("Expected log entry to be removed, got %s", operation)
-	}
-	exists = FileExists(dirs.Staging + "added/" + logId + "/file.txt")
-	if exists {
-		t.Errorf("Expected file to be removed from staging area")
+		t.Errorf("Expected log entry to be removed")
 	}
 
 	os.RemoveAll(namespace)

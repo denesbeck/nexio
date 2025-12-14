@@ -53,7 +53,7 @@ func Test_ComprehensiveCoverage(t *testing.T) {
 	}
 
 	// Test file metadata
-	isCommitted, _, _ := GetFileMetadata(testFile)
+	isCommitted, _ := GetFileMetadata(testFile)
 	if !isCommitted {
 		t.Errorf("File should be committed")
 	}

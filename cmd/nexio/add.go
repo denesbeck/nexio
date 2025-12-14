@@ -164,13 +164,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 		isDeleted := IsFileDeleted(filePath)
 		if isDeleted {
 			Debug("File was committed but deleted, staging for removal")
-			blobHash, err := WriteBlob(filePath)
-			if err != nil {
-				Debug("Error writing blob: %s", err.Error())
-				Fail(COMMON_RETURN_CODES[005])
-				return 114
-			}
-			LogOperation(generatedId, "REM", filePath, blobHash)
+			LogOperation(generatedId, "REM", filePath, "")
 			return 109
 		}
 

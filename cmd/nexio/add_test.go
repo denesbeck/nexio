@@ -92,13 +92,13 @@ func Test_ExpandFilePaths(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddToStaging_EdgeCases(t *testing.T) {
+func Test_StageAndLog_EdgeCases(t *testing.T) {
 	os.RemoveAll(namespace)
 	runInitCommand()
 
 	// Test adding a file that doesn't exist - should fail
 	id := GenRandHex(20)
-	err := AddToStaging(id, namespace+"nonexistent.txt", "added")
+	err := StageAndLog(id, namespace+"nonexistent.txt", "added")
 	if err == nil {
 		t.Errorf("Expected error when adding non-existent file")
 	}
@@ -231,7 +231,7 @@ func Test_AddCmdStatusCode107(t *testing.T) {
 	runCommitCommand("test")
 
 	hash = GenRandHex(20)
-	LogOperation(hash, "REM", file)
+	LogOperation(hash, "REM", file, "")
 
 	os.WriteFile(file, []byte("test"), 0644)
 
@@ -256,7 +256,7 @@ func Test_AddCmdStatusCode8(t *testing.T) {
 	runCommitCommand("test")
 
 	hash = GenRandHex(20)
-	LogOperation(hash, "REM", file)
+	LogOperation(hash, "REM", file, "")
 
 	os.Remove(file)
 
@@ -492,47 +492,10 @@ func Test_StageAndLog(t *testing.T) {
 		t.Errorf("StageAndLog failed: %v", err)
 	}
 
-	// Verify file was staged
-	if !FileExists(dirs.Staging + "added/" + id + "/test_stage.txt") {
-		t.Error("File was not staged")
-	}
-
 	// Verify log entry was created
-	isLogged, _, _ := LogEntryLookup("ADD", testFile)
+	isLogged, _ := LogEntryLookup("ADD", testFile)
 	if !isLogged {
 		t.Error("Log entry was not created")
-	}
-
-	os.RemoveAll(namespace)
-}
-
-func Test_RemoveFileAndLog(t *testing.T) {
-	os.RemoveAll(namespace)
-	runInitCommand()
-
-	testFile := namespace + "test_remove.txt"
-	os.WriteFile(testFile, []byte("content"), 0644)
-
-	id := GenRandHex(20)
-	StageAndLog(id, testFile, "added")
-
-	// Verify file was staged
-	if !FileExists(dirs.Staging + "added/" + id + "/test_remove.txt") {
-		t.Error("File was not staged before removal")
-	}
-
-	// Remove the staged file and log
-	RemoveFileAndLog(id, "added")
-
-	// Verify file was removed from staging
-	if FileExists(dirs.Staging + "added/" + id) {
-		t.Error("Staged file was not removed")
-	}
-
-	// Verify log entry was removed
-	isLogged, _, _ := LogEntryLookup("ADD", testFile)
-	if isLogged {
-		t.Error("Log entry was not removed")
 	}
 
 	os.RemoveAll(namespace)

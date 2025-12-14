@@ -11,7 +11,7 @@ func Test_NewBranchCmd(t *testing.T) {
 	runInitCommand()
 	runNewCommand("test-branch", "", "")
 
-	branches, err := os.ReadDir(dirs.Branches)
+	branches, err := os.ReadDir(GetDir("branches"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -469,7 +469,7 @@ func Test_Branching(t *testing.T) {
 
 	runDropCommand("test-branch1")
 
-	branches, err := os.ReadDir(dirs.Branches)
+	branches, err := os.ReadDir(GetDir("branches"))
 	if err != nil {
 		t.Error(err)
 	}
@@ -490,4 +490,32 @@ func Test_Branching(t *testing.T) {
 	}
 
 	os.RemoveAll(namespace)
+}
+
+func Test_indexOf(t *testing.T) {
+	tests := []struct {
+		name     string
+		s        string
+		substr   string
+		expected int
+	}{
+		{"found at start", "hello world", "hello", 0},
+		{"found in middle", "hello world", "lo wo", 3},
+		{"found at end", "hello world", "world", 6},
+		{"not found", "hello world", "xyz", -1},
+		{"empty substring", "hello", "", 0},
+		{"substring longer than string", "hi", "hello", -1},
+		{"exact match", "hello", "hello", 0},
+		{"single char found", "hello", "e", 1},
+		{"single char not found", "hello", "x", -1},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := indexOf(tt.s, tt.substr)
+			if result != tt.expected {
+				t.Errorf("indexOf(%q, %q) = %d, expected %d", tt.s, tt.substr, result, tt.expected)
+			}
+		})
+	}
 }

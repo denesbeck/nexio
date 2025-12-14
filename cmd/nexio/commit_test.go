@@ -41,7 +41,7 @@ func TestCommit(t *testing.T) {
 				t.Errorf("Expected next commit ID %s, got %s", commitId, (*commits)[i-1].Next)
 			}
 		}
-		metadata, err := os.ReadFile(dirs.Commits + commitId + "/metadata.json")
+		metadata, err := os.ReadFile(GetDir("commits") + commitId + "/metadata.json")
 		if err != nil {
 			t.Errorf("Failed to read metadata file: %v", err)
 		}
