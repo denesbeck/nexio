@@ -131,7 +131,7 @@ func setConfig(key string, value string) int {
 		Fail(COMMON_RETURN_CODES[001])
 		return 001
 	}
-	config, err := os.ReadFile(dirs.Config)
+	config, err := os.ReadFile(GetDir("config"))
 	if err != nil {
 		Debug("Failed to read config file")
 		MustSucceed(err, "operation failed")
@@ -156,7 +156,7 @@ func setConfig(key string, value string) int {
 		MustSucceed(err, "operation failed")
 	}
 
-	if err = os.WriteFile(dirs.Config, jsonData, 0644); err != nil {
+	if err = os.WriteFile(GetDir("config"), jsonData, 0644); err != nil {
 		Debug("Failed to write config file")
 		MustSucceed(err, "operation failed")
 	}

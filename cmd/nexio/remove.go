@@ -27,17 +27,15 @@ func runRemoveCommand(filePath string) {
 		return
 	}
 
-	isLogged, logId, operation := LogEntryLookup("*", filePath)
-
-	ops := map[string]string{
-		"ADD": "added",
-		"MOD": "modified",
-		"REM": "removed",
-	}
+	isLogged, logEntry := LogEntryLookup("*", filePath)
 
 	if isLogged {
-		RemoveFile(dirs.Staging + ops[operation] + "/" + logId)
-		RemoveLogEntry(logId)
+		err := RemoveLogEntry(logEntry.Id)
+		if err != nil {
+			Debug("Error removing log entry: %s", err.Error())
+			Fail(COMMON_RETURN_CODES[005])
+			return
+		}
 		Success(REMOVE_RETURN_CODES[801])
 	} else {
 		Info(REMOVE_RETURN_CODES[802])

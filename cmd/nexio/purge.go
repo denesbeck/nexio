@@ -38,7 +38,7 @@ func runPurgeCommand() {
 		"Configuration files"}, false)
 
 	BreakLine()
-	Text("Location: "+Code(dirs.Root), "")
+	Text("Location: "+Code(GetDir("root")), "")
 	BreakLine()
 	repoSize := GetRepositorySize()
 	Text(Bold("Size: ")+repoSize, "")
@@ -66,7 +66,7 @@ func runPurgeCommand() {
 	}
 
 	if namespace == "" {
-		os.RemoveAll(dirs.Root)
+		os.RemoveAll(GetDir("root"))
 	} else {
 		os.RemoveAll(namespace)
 	}

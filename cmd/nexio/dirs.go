@@ -1,78 +1,57 @@
 package main
 
-import (
-	"reflect"
-)
-
-type Dirs struct {
-	Root                 string
-	Objects              string
-	Staging              string
-	StagingAdded         string
-	StagingModified      string
-	StagingRemoved       string
-	StagingLogs          string
-	Commits              string
-	Branches             string
-	DefaultBranch        string
-	DefaultBranchCommits string
-	BranchesMetadata     string
-	Config               string
+type DirEntry struct {
+	Id      string
+	Name    string
+	Path    string
+	IsFile  bool
+	Content string
 }
 
-var dirs = Dirs{
-	Root: namespace + ".nexio/",
+var root = ".nexio/"
 
-	// Objects directory for storing blobs
-	Objects: namespace + ".nexio/objects/",
-
-	// Staging directories for `added`, `modified`, `removed` operations.
-	Staging:         namespace + ".nexio/staging/",
-	StagingAdded:    namespace + ".nexio/staging/added/",
-	StagingModified: namespace + ".nexio/staging/modified/",
-	StagingRemoved:  namespace + ".nexio/staging/removed/",
-
-	// Log file for tracking staging operations.
-	// Format: { Id: <hash>, Op: ADD | MOD | REM, Path: path/to/file }
-	StagingLogs: namespace + ".nexio/staging/logs.json",
-
-	// Commits directory stores directories for each commit hash.
-	// `commits/<commit-hash>/<file-id>/<file-name>`: refers to the file in the commit.
-	// `commits/<commit-hash>/logs.json`: copy of the staging logs file at the time of the commit.
-	// Format: { Id: <hash>, Op: ADD | MOD | REM, Path: path/to/file }
-	// `commits/<commit-hash>/metadata.json` stores metadata for the commit, e.g. commit message, timestamp.
-	// Format: { Author: <name <email>>, Message: <commit-message> }
-	// For each commit hash a file called `commits/<commit-hash>/fileList.json` will be created. It represents the project state at the time of the commit listing all the files with commit hashes.
-	// Format: { Id: <hash>, CommitId: <hash>, Path: path/to/file }
-	// Before each commit, the `fileList.json` will be copied from the previous commit. This file will be updated according to the changes made in the commit.
-	// Whenever a file is added to the project, it is added to the `fileList.json` file.
-	// Whenever a file is modified, its commit hash is updated in the fileList.json file with the new commit hash.
-	// Whenever a file is removed from the project, it is removed from the fileList.json file.
-	Commits: namespace + ".nexio/commits/",
-
-	Branches: namespace + ".nexio/branches/",
-
-	// Initial branch is named `main`.
-	DefaultBranch: namespace + ".nexio/branches/main/",
-
-	// "branches/<branch-name>/commits.json" stores commit hashes for the given branch.
-	// Format: [ { Id: <commit-hash>, Timestamp: <timestamp> }, ... ]
-	DefaultBranchCommits: namespace + ".nexio/branches/main/commits.json",
-
-	// "branches/metadata.json" stores default branch and current branch names.
-	// Format: { Default: <branch-name>, Current: <branch-name> }
-	BranchesMetadata: namespace + ".nexio/branches/metadata.json",
-
-	// "config.json" stores Nexio config data, e.g. name, email.
-	// Format: { Name: <name>, Email: <email> }
-	Config: namespace + ".nexio/config.json",
+var dirs = []DirEntry{
+	{Id: "root", Name: "root", Path: namespace + root, IsFile: false},
+	{Id: "objects", Name: "objects", Path: namespace + root + "objects/", IsFile: false},
+	{Id: "staging", Name: "staging", Path: namespace + root + "staging/", IsFile: false},
+	{Id: "staging_logs_file", Name: "staging logs file", Path: namespace + root + "staging/logs.json", IsFile: true, Content: "[]"},
+	{Id: "commits", Name: "commits", Path: namespace + root + "commits/", IsFile: false},
+	{Id: "branches", Name: "branches", Path: namespace + root + "branches/", IsFile: false},
+	{Id: "default_branch_dir", Name: "main (default branch)", Path: namespace + root + "branches/main/", IsFile: false},
+	{Id: "default_branch_commits_file", Name: "commits (default branch)", Path: namespace + root + "branches/main/commits.json", IsFile: true, Content: "[]"},
+	{Id: "branches_metadata", Name: "metadata", Path: namespace + root + "branches/metadata.json", IsFile: true, Content: "{ \"default\": \"main\", \"current\": \"main\" }"},
+	{Id: "config", Name: "config", Path: namespace + root + "config.json", IsFile: true, Content: "{ \"name\": \"\", \"email\": \"\" }"},
 }
 
-func (d Dirs) GetDirs() []string {
-	fields := reflect.ValueOf(d)
-	var dirs []string
-	for i := 0; i < fields.NumField(); i++ {
-		dirs = append(dirs, fields.Field(i).String())
+func GetDirs() []string {
+	var paths []string
+	for _, dir := range dirs {
+		if !dir.IsFile {
+			paths = append(paths, dir.Path)
+		}
 	}
-	return dirs
+	return paths
+}
+
+func GetFiles() []string {
+	var paths []string
+	for _, dir := range dirs {
+		if dir.IsFile {
+			paths = append(paths, dir.Path)
+		}
+	}
+	return paths
+}
+
+func GetRoot() string {
+	return GetDir("root")
+}
+
+func GetDir(id string) string {
+	for _, d := range dirs {
+		if d.Id == id {
+			return d.Path
+		}
+	}
+	return ""
 }

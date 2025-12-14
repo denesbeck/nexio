@@ -33,7 +33,7 @@ func GetLastCommit() Commit {
 
 func GetLastCommitByBranch(branch string) Commit {
 	Debug("Getting last commit for branch: %s", branch)
-	commits, err := os.ReadFile(dirs.Branches + branch + "/commits.json")
+	commits, err := os.ReadFile(GetDir("branches") + branch + "/commits.json")
 	if err != nil {
 		Debug("Failed to read commits file")
 		MustSucceed(err, "operation failed")
@@ -62,7 +62,7 @@ func GetLastCommitByBranch(branch string) Commit {
 func CountCommits() int {
 	Debug("Counting all commits")
 	currentBranchName := GetCurrentBranchName()
-	commits, err := os.ReadFile(dirs.Branches + currentBranchName + "/commits.json")
+	commits, err := os.ReadFile(GetDir("branches") + currentBranchName + "/commits.json")
 	if err != nil {
 		Debug("Failed to read commits file")
 		MustSucceed(err, "operation failed")
@@ -80,7 +80,7 @@ func CountCommits() int {
 func GetCommits() *[]Commit {
 	Debug("Getting all commits")
 	currentBranchName := GetCurrentBranchName()
-	commits, err := os.ReadFile(dirs.Branches + currentBranchName + "/commits.json")
+	commits, err := os.ReadFile(GetDir("branches") + currentBranchName + "/commits.json")
 	if err != nil {
 		Debug("Failed to read commits file")
 		MustSucceed(err, "operation failed")
@@ -162,7 +162,7 @@ func sortCommitsByLinkedList(commits []Commit) []Commit {
 
 func GetFileListContent(commitId string) (result *[]FileListEntry) {
 	Debug("Getting file list for commit: %s", commitId)
-	fileList, err := os.ReadFile(dirs.Commits + commitId + "/fileList.json")
+	fileList, err := os.ReadFile(GetDir("commits") + commitId + "/fileList.json")
 	if err != nil {
 		Debug("Failed to read file list")
 		MustSucceed(err, "operation failed")
@@ -219,9 +219,19 @@ func ProcessFileList(latestCommitId string, newCommitId string) {
 			}
 		case "ADD":
 			Debug("Adding new file to list: %s", logEntry.Path)
-			*fileList = append(*fileList, FileListEntry{Id: logEntry.Id, CommitId: newCommitId, Path: logEntry.Path})
-			_, fileName := ParsePath(logEntry.Path)
-			CopyFile(logEntry.Path, dirs.Commits+newCommitId+"/"+logEntry.Id+"/"+fileName)
+			info, err := os.Stat(logEntry.Path)
+			if err != nil {
+				Debug("Failed to get file info")
+				MustSucceed(err, "operation failed")
+			}
+			mode := uint32(info.Mode().Perm())
+			*fileList = append(*fileList, FileListEntry{
+				Id:       logEntry.Id,
+				CommitId: newCommitId,
+				Path:     logEntry.Path,
+				BlobHash: logEntry.BlobHash,
+				Mode:     mode,
+			})
 		case "MOD":
 			if len(*fileList) == 0 {
 				Debug("Skipping MOD operation - no files in list")
@@ -232,13 +242,12 @@ func ProcessFileList(latestCommitId string, newCommitId string) {
 					Debug("Updating file in list: %s", entry.Path)
 					(*fileList)[i].Id = logEntry.Id
 					(*fileList)[i].CommitId = newCommitId
+					(*fileList)[i].BlobHash = logEntry.BlobHash
 				}
 			}
-			_, fileName := ParsePath(logEntry.Path)
-			CopyFile(logEntry.Path, dirs.Commits+newCommitId+"/"+logEntry.Id+"/"+fileName)
 		}
 	}
-	WriteJson(dirs.Commits+newCommitId+"/fileList.json", fileList)
+	WriteJson(GetDir("commits")+newCommitId+"/fileList.json", fileList)
 	Debug("File list processed successfully")
 }
 
@@ -249,7 +258,7 @@ func WriteCommitMetadata(commitId string, message string) {
 		Name:  config.Name,
 		Email: config.Email,
 	}
-	WriteJson(dirs.Commits+commitId+"/metadata.json", CommitMetadata{Author: author, Message: message})
+	WriteJson(GetDir("commits")+commitId+"/metadata.json", CommitMetadata{Author: author, Message: message})
 	Debug("Commit metadata written successfully")
 }
 
@@ -257,8 +266,8 @@ func RegisterCommitForBranch(commitId string) {
 	Debug("Registering commit for branch: %s", commitId)
 	currentBranchName := GetCurrentBranchName()
 
-	err := WithLock(dirs.Branches+currentBranchName+"/commits", DefaultLockTimeout, func() error {
-		commits, err := os.ReadFile(dirs.Branches + currentBranchName + "/commits.json")
+	err := WithLock(GetDir("branches")+currentBranchName+"/commits", DefaultLockTimeout, func() error {
+		commits, err := os.ReadFile(GetDir("branches") + currentBranchName + "/commits.json")
 		if err != nil {
 			Debug("Failed to read commits file")
 			return err
@@ -272,7 +281,7 @@ func RegisterCommitForBranch(commitId string) {
 		if len(content) > 1 {
 			content[len(content)-2].Next = commitId
 		}
-		WriteJson(dirs.Branches+currentBranchName+"/commits.json", content)
+		WriteJson(GetDir("branches")+currentBranchName+"/commits.json", content)
 		Debug("Commit registered successfully")
 		return nil
 	})
@@ -317,14 +326,14 @@ func CopyCommitsToBranch(commitId string, targetBranch string) error {
 		return errors.New("Commit does not exist")
 	}
 
-	if err := os.Mkdir(dirs.Branches+targetBranch, 0755); err != nil {
+	if err := os.Mkdir(GetDir("branches")+targetBranch, 0755); err != nil {
 		Debug("Branch already exists: %s", targetBranch)
 		return errors.New("Branch already exists")
 	}
 
 	index := FindIndex(commitIds, commitId)
 	*commits = (*commits)[:(index + 1)]
-	WriteJson(dirs.Branches+targetBranch+"/commits.json", *commits)
+	WriteJson(GetDir("branches")+targetBranch+"/commits.json", *commits)
 	Debug("Commits copied successfully")
 	return nil
 }

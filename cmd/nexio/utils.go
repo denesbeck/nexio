@@ -16,6 +16,7 @@ import (
 func WriteJson(fullPath string, data interface{}) {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
+		Debug("Failed to marshal data")
 		MustSucceed(err, "operation failed")
 	}
 	if _, err = os.Stat(fullPath); os.IsNotExist(err) {
@@ -24,6 +25,7 @@ func WriteJson(fullPath string, data interface{}) {
 	}
 	err = os.WriteFile(fullPath, jsonData, 0644)
 	if err != nil {
+		Debug("Failed to write data")
 		MustSucceed(err, "operation failed")
 	}
 }
@@ -230,7 +232,7 @@ func TimeAgo(timestamp string) string {
 func GetRepositorySize() string {
 	var totalSize int64
 
-	err := filepath.Walk(dirs.Root, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(GetDir("root"), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Continue walking even if there's an error
 		}

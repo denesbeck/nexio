@@ -194,7 +194,7 @@ func runBranchCommand() {
 		return
 	}
 
-	branches, err := os.ReadDir(dirs.Branches)
+	branches, err := os.ReadDir(GetDir("branches"))
 	if err != nil {
 		Debug("%s", BRANCH_RETURN_CODES[217])
 		Fail(BRANCH_RETURN_CODES[217])
@@ -295,13 +295,13 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 		}
 	} else {
 		Debug("Creating branch from branch: %s", srcBranch)
-		if err := os.Mkdir(dirs.Branches+branchName, 0755); err != nil {
+		if err := os.Mkdir(GetDir("branches")+branchName, 0755); err != nil {
 			Debug("Branch already exists: %s", branchName)
 			Fail(BRANCH_RETURN_CODES[205])
 			return 205
 		}
 
-		CopyFile(dirs.Branches+srcBranch+"/commits.json", dirs.Branches+branchName+"/commits.json")
+		CopyFile(GetDir("branches")+srcBranch+"/commits.json", GetDir("branches")+branchName+"/commits.json")
 	}
 	Debug("Branch created successfully: %s", branchName)
 	Success(BRANCH_RETURN_CODES[206])
@@ -335,7 +335,7 @@ func runDropCommand(branchName string) int {
 		return 209
 	}
 
-	if err := os.RemoveAll(dirs.Branches + branchName); err != nil {
+	if err := os.RemoveAll(GetDir("branches") + branchName); err != nil {
 		Debug("Failed to delete branch: %s", branchName)
 		Fail(BRANCH_RETURN_CODES[207])
 		return 207
@@ -400,22 +400,25 @@ func runSwitchCommand(branchName string) int {
 	}
 
 	Debug("Remove tracked files for current branch %s before switching.", currentBranch)
+
 	oldBranchCommitId := GetLastCommitByBranch(currentBranch).Id
+	// Remove the tracked files from the old branch
 	if oldBranchCommitId != "" {
 		fileList := GetFileListContent(oldBranchCommitId)
 		for _, file := range *fileList {
 			RemoveFile("./" + file.Path)
 		}
 	}
+
 	newBranchCommitId := GetLastCommitByBranch(branchName).Id
 	Debug("Switching to commit: %s", newBranchCommitId)
+
+	// Restore the tracked files from the new branch
 	if newBranchCommitId != "" {
 		fileList := GetFileListContent(newBranchCommitId)
 		for _, file := range *fileList {
-			_, fileName := ParsePath(file.Path)
-			src := dirs.Commits + file.CommitId + "/" + file.Id + "/" + fileName
-			dst := "./" + file.Path
-			if err := CopyFile(src, dst); err != nil {
+			err := RestoreBlob(file.BlobHash, "./"+file.Path, os.FileMode(file.Mode))
+			if err != nil {
 				Debug("Failed to restore file %s: %v", file.Path, err)
 				Fail("Failed to restore file: " + file.Path)
 				return 215

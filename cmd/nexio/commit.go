@@ -220,7 +220,7 @@ func runCoreCommitCommand(message string) (int, string) {
 	WriteCommitMetadata(newCommitId, message)
 	Debug("Wrote commit metadata")
 
-	if err := CopyFile(dirs.StagingLogs, dirs.Commits+newCommitId+"/logs.json"); err != nil {
+	if err := CopyFile(GetDir("staging_logs_file"), GetDir("commits")+newCommitId+"/logs.json"); err != nil {
 		Debug("Failed to copy staging logs to commit")
 		MustSucceed(err, "operation failed")
 	}
@@ -228,19 +228,6 @@ func runCoreCommitCommand(message string) (int, string) {
 	Debug("Copied staging logs to commit")
 
 	TruncateLogs()
-	if err := EmptyDir(dirs.StagingAdded); err != nil {
-		Debug("Failed to empty staging added directory")
-		MustSucceed(err, "operation failed")
-	}
-	if err := EmptyDir(dirs.StagingModified); err != nil {
-		Debug("Failed to empty staging modified directory")
-		MustSucceed(err, "operation failed")
-	}
-	if err := EmptyDir(dirs.StagingRemoved); err != nil {
-		Debug("Failed to empty staging removed directory")
-		MustSucceed(err, "operation failed")
-	}
-	Debug("Cleaned up staging area")
 
 	RegisterCommitForBranch(newCommitId)
 	Debug("Registered commit for current branch")

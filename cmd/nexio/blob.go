@@ -37,7 +37,7 @@ func HashBytes(data []byte) string {
 
 // Get the path to a blob considering the sharded directory
 func BlobPath(hash string) string {
-	return filepath.Join(dirs.Objects, hash[:2], hash[2:])
+	return filepath.Join(GetDir("objects"), hash[:2], hash[2:])
 }
 
 func BlobExists(hash string) bool { return FileExists(BlobPath(hash)) }

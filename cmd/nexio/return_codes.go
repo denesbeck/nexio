@@ -5,6 +5,7 @@ var COMMON_RETURN_CODES = map[int]string{
 	002: "Path ignored by one of the rules defined in the rules file.",
 	003: "Nexio already initialized.",
 	004: "Invalid path.",
+	005: "Unexpected error.",
 }
 
 var ADD_RETURN_CODES = map[int]string{

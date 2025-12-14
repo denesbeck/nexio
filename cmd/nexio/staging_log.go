@@ -12,9 +12,10 @@ import (
 )
 
 type LogFileEntry struct {
-	Id   string `json:"id"`
-	Op   string `json:"op"`
-	Path string `json:"path"`
+	Id       string `json:"id"`
+	Op       string `json:"op"`
+	Path     string `json:"path"`
+	BlobHash string `json:"blobHashField"`
 }
 
 var (
@@ -23,28 +24,29 @@ var (
 	rem = color.New(color.FgRed).SprintFunc()
 )
 
-func LogOperation(id string, op string, path string) {
+func LogOperation(id string, op string, path string, blobHash string) {
 	Debug("Logging operation: id=%s, op=%s, path=%s", id, op, path)
 
-	err := WithLock(dirs.StagingLogs, DefaultLockTimeout, func() error {
-		logs, err := os.ReadFile(dirs.StagingLogs)
+	err := WithLock(GetDir("staging_logs_file"), DefaultLockTimeout, func() error {
+		logs, err := os.ReadFile(GetDir("staging_logs_file"))
 		if err != nil {
 			Debug("Failed to read staging logs")
-			return err
+			MustSucceed(err, "operation failed")
 		}
 		var content []LogFileEntry
 		if len(logs) > 0 {
 			if err = json.Unmarshal(logs, &content); err != nil {
 				Debug("Failed to unmarshal staging logs")
-				return err
+				MustSucceed(err, "operation failed")
 			}
 		}
 		content = append(content, LogFileEntry{
-			Id:   id,
-			Op:   op,
-			Path: path,
+			Id:       id,
+			Op:       op,
+			Path:     path,
+			BlobHash: blobHash,
 		})
-		WriteJson(dirs.StagingLogs, content)
+		WriteJson(GetDir("staging_logs_file"), content)
 		Debug("Operation logged successfully")
 		return nil
 	})
@@ -54,9 +56,9 @@ func LogOperation(id string, op string, path string) {
 	}
 }
 
-func LogEntryLookup(op string, path string) (isLogged bool, logId string, operation string) {
+func LogEntryLookup(op string, path string) (bool, *LogFileEntry) {
 	Debug("Looking up log entry: op=%s, path=%s", op, path)
-	logs, err := os.ReadFile(dirs.StagingLogs)
+	logs, err := os.ReadFile(GetDir("staging_logs_file"))
 	if err != nil {
 		Debug("Failed to read staging logs")
 		MustSucceed(err, "operation failed")
@@ -71,12 +73,12 @@ func LogEntryLookup(op string, path string) (isLogged bool, logId string, operat
 			// Consider op "*" as a wildcard.
 			if op == "*" && entry.Path == path || entry.Op == op && entry.Path == path {
 				Debug("Found log entry: id=%s, op=%s", entry.Id, entry.Op)
-				return true, entry.Id, entry.Op
+				return true, &entry
 			}
 		}
 	}
 	Debug("No matching log entry found")
-	return false, "", ""
+	return false, nil
 }
 
 func IsStagingLogsEmpty() bool {
@@ -89,11 +91,12 @@ func IsStagingLogsEmpty() bool {
 	return false
 }
 
-func RemoveLogEntry(id string) {
+func RemoveLogEntry(id string) error {
 	Debug("Removing log entry: id=%s", id)
 
-	err := WithLock(dirs.StagingLogs, DefaultLockTimeout, func() error {
-		logs, err := os.ReadFile(dirs.StagingLogs)
+	stagingLogsFilePath := GetDir("staging_logs_file")
+	err := WithLock(stagingLogsFilePath, DefaultLockTimeout, func() error {
+		logs, err := os.ReadFile(stagingLogsFilePath)
 		if err != nil {
 			Debug("Failed to read staging logs")
 			MustSucceed(err, "operation failed")
@@ -112,21 +115,24 @@ func RemoveLogEntry(id string) {
 				break
 			}
 		}
-		WriteJson(dirs.StagingLogs, content)
+		WriteJson(stagingLogsFilePath, content)
 		Debug("Log entry removed successfully")
 		return nil
 	})
 
 	if err != nil {
-		MustSucceed(err, "operation failed")
+		return err
 	}
+
+	return nil // fallback
 }
 
 func TruncateLogs() {
 	Debug("Truncating staging logs")
 
-	err := WithLock(dirs.StagingLogs, DefaultLockTimeout, func() error {
-		WriteJson(dirs.StagingLogs, []LogFileEntry{})
+	staginsLogsFile := GetDir("staging_logs_file")
+	err := WithLock(staginsLogsFile, DefaultLockTimeout, func() error {
+		WriteJson(staginsLogsFile, []LogFileEntry{})
 		Debug("Staging logs truncated successfully")
 		return nil
 	})
@@ -138,7 +144,7 @@ func TruncateLogs() {
 
 func GetStagingLogsContent() (result *[]LogFileEntry) {
 	Debug("Getting staging logs content")
-	logs, err := os.ReadFile(dirs.StagingLogs)
+	logs, err := os.ReadFile(GetDir("staging_logs_file"))
 	if err != nil {
 		Debug("Failed to read staging logs")
 		MustSucceed(err, "operation failed")
@@ -171,17 +177,7 @@ func GetSyncedStagingLogsContent() (result *[]LogFileEntry) {
 		exists := FileExists(entry.Path)
 		if !exists {
 			diff = true
-			// Convert operation code to directory name (ADD -> added, MOD -> modified, REM -> removed)
-			opDir := ""
-			switch entry.Op {
-			case "ADD":
-				opDir = "added"
-			case "MOD":
-				opDir = "modified"
-			case "REM":
-				opDir = "removed"
-			}
-			RemoveFileAndLog(entry.Id, opDir)
+			RemoveLogEntry(entry.Id)
 		}
 	}
 
@@ -288,26 +284,15 @@ func CountOps(content []LogFileEntry) (add int, mod int, rem int) {
 	return add, mod, rem
 }
 
-// ValidateStagingIntegrity checks if staging logs match actual staged files
-// Returns list of orphaned file IDs that should be cleaned up
+// Checks if blob hash references in staging logs file exist
 func ValidateStagingIntegrity() []string {
 	Debug("Validating staging integrity")
 	logs := GetStagingLogsContent()
 	orphanedIds := []string{}
 
-	// Check if all logged files exist in staging
 	for _, entry := range *logs {
-		var stagingPath string
-		switch entry.Op {
-		case "ADD":
-			stagingPath = dirs.StagingAdded + entry.Id
-		case "MOD":
-			stagingPath = dirs.StagingModified + entry.Id
-		case "REM":
-			stagingPath = dirs.StagingRemoved + entry.Id
-		}
-
-		if _, err := os.Stat(stagingPath); os.IsNotExist(err) {
+		blobExists := BlobExists(entry.BlobHash)
+		if !blobExists {
 			Debug("Found orphaned log entry: %s (path: %s)", entry.Id, entry.Path)
 			orphanedIds = append(orphanedIds, entry.Id)
 		}
@@ -317,7 +302,6 @@ func ValidateStagingIntegrity() []string {
 	return orphanedIds
 }
 
-// CleanOrphanedStagingEntries removes log entries that don't have corresponding staged files
 func CleanOrphanedStagingEntries() int {
 	Debug("Cleaning orphaned staging entries")
 	orphanedIds := ValidateStagingIntegrity()
@@ -360,7 +344,7 @@ func GetUntrackedFiles() []string {
 		}
 
 		// Check if already committed
-		if isCommitted, _, _ := GetFileMetadata(path); isCommitted {
+		if isCommitted, _ := GetFileMetadata(path); isCommitted {
 			return nil
 		}
 
@@ -396,7 +380,7 @@ func GetModifiedOrDeletedFiles() (modified []string, deleted []string) {
 
 		_, fileName := ParsePath(file.Path)
 
-		if isModified, _ := IsModified(file.Path, dirs.Commits+file.CommitId+"/"+file.Id+"/"+fileName); isModified {
+		if isModified, _ := IsModified(file.Path, GetDir("commits")+file.CommitId+"/"+file.Id+"/"+fileName); isModified {
 			modified = append(modified, file.Path)
 		}
 	}

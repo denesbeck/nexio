@@ -9,11 +9,13 @@ type FileListEntry struct {
 	Id       string `json:"id"`
 	CommitId string `json:"commitId"`
 	Path     string `json:"path"`
+	BlobHash string `json:"blobHash"`
+	Mode     uint32 `json:"mode"`
 }
 
 func IsFileStaged(filePath string) bool {
 	Debug("Checking if file is staged: %s", filePath)
-	logs, err := os.ReadFile(dirs.StagingLogs)
+	logs, err := os.ReadFile(GetDir("staging_logs_file"))
 	if err != nil {
 		Debug("Failed to read staging logs")
 		MustSucceed(err, "operation failed")
@@ -38,14 +40,16 @@ func IsFileStaged(filePath string) bool {
 	return false
 }
 
-func GetFileMetadata(filePath string) (isCommitted bool, commitId string, fileId string) {
+func GetFileMetadata(filePath string) (isCommitted bool, metadata FileListEntry) {
 	Debug("Getting file metadata: %s", filePath)
 	latestCommitId := GetLastCommit().Id
+
+	Debug("Latest commit ID: %s", latestCommitId)
 	if latestCommitId == "" {
 		Debug("No commits found")
-		return false, "", ""
+		return false, FileListEntry{}
 	}
-	fileList, err := os.ReadFile(dirs.Commits + latestCommitId + "/fileList.json")
+	fileList, err := os.ReadFile(GetDir("commits") + latestCommitId + "/fileList.json")
 	if err != nil {
 		Debug("Failed to read file list")
 		MustSucceed(err, "operation failed")
@@ -56,19 +60,19 @@ func GetFileMetadata(filePath string) (isCommitted bool, commitId string, fileId
 		Debug("Failed to unmarshal file list")
 		MustSucceed(err, "operation failed")
 	}
-	for _, file := range content {
-		if file.Path == filePath {
-			Debug("File found in commit: id=%s, commitId=%s", file.Id, file.CommitId)
-			return true, file.CommitId, file.Id
+	for _, fileListEntry := range content {
+		if fileListEntry.Path == filePath {
+			Debug("File (%s) found in commit: %s", fileListEntry.Id, fileListEntry.CommitId)
+			return true, fileListEntry
 		}
 	}
 	Debug("File not found in any commit")
-	return false, "", ""
+	return false, FileListEntry{}
 }
 
 func IsFileDeleted(filePath string) bool {
 	Debug("Checking if file is deleted: %s", filePath)
-	committed, _, _ := GetFileMetadata(filePath)
+	committed, _ := GetFileMetadata(filePath)
 	existsInWorkdir := FileExists(filePath)
 	isDeleted := committed && !existsInWorkdir
 	Debug("File deletion status: committed=%v, exists=%v, isDeleted=%v", committed, existsInWorkdir, isDeleted)

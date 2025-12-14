@@ -6,21 +6,6 @@ import (
 	"strings"
 )
 
-func AddToStaging(id string, path string, op string) error {
-	Debug("Adding file to staging: id=%s, path=%s, op=%s", id, path, op)
-	_, file := ParsePath(path)
-
-	if err := os.MkdirAll(dirs.Staging+op+"/"+id, 0755); err != nil {
-		Debug("Failed to create staging directory")
-		MustSucceed(err, "operation failed")
-	}
-	if err := CopyFile(path, dirs.Staging+op+"/"+id+"/"+file); err != nil {
-		return err
-	}
-	Debug("File added to staging successfully")
-	return nil
-}
-
 func DisplayAddResults(results []AddResult) {
 	if len(results) == 0 {
 		Debug("Results length is 0.")
@@ -93,13 +78,6 @@ func DisplayAddResults(results []AddResult) {
 	}
 }
 
-func RemoveFileAndLog(id string, op string) error {
-	Debug("Removing file and log entry: id=%s, op=%s", id, op)
-	RemoveFile(dirs.Staging + op + "/" + id)
-	RemoveLogEntry(id)
-	return nil
-}
-
 func StageAndLog(id string, path string, op string) error {
 	Debug("Staging and logging file: id=%s, path=%s, op=%s", id, path, op)
 	logOperations := map[string]string{
@@ -107,10 +85,12 @@ func StageAndLog(id string, path string, op string) error {
 		"modified": "MOD",
 		"removed":  "REM",
 	}
-	if err := AddToStaging(id, path, op); err != nil {
+	blobHash, err := WriteBlob(path)
+	if err != nil {
+		Debug("Failed to write blob")
 		return err
 	}
-	LogOperation(id, logOperations[op], path)
+	LogOperation(id, logOperations[op], path, blobHash)
 	return nil
 }
 

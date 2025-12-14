@@ -38,13 +38,13 @@ func CreateBranchesMetadata() {
 		Default: InitBranch,
 		Current: InitBranch,
 	}
-	WriteJson(dirs.BranchesMetadata, payload)
+	WriteJson(GetDir("branches_metadata"), payload)
 	Debug("Branches metadata created with initial branch: %s", InitBranch)
 }
 
 func GetBranchesMetadata() (m *BranchMetadata) {
 	Debug("Reading branches metadata")
-	content, err := os.ReadFile(dirs.BranchesMetadata)
+	content, err := os.ReadFile(GetDir("branches_metadata"))
 	if err != nil {
 		Debug("Failed to read branches metadata")
 		MustSucceed(err, "operation failed")
@@ -60,7 +60,7 @@ func GetBranchesMetadata() (m *BranchMetadata) {
 
 func SetBranch(branch string, configParam string) error {
 	Debug("Setting branch: branch=%s, config=%s", branch, configParam)
-	err := WithLock(dirs.BranchesMetadata, DefaultLockTimeout, func() error {
+	err := WithLock(GetDir("branches_metadata"), DefaultLockTimeout, func() error {
 		metadata := GetBranchesMetadata()
 
 		if (configParam == DefaultBranch && metadata.Default == branch) || (configParam == CurrentBranch && metadata.Current == branch) {
@@ -87,7 +87,7 @@ func SetBranch(branch string, configParam string) error {
 			Debug("Failed to marshal branch metadata")
 			MustSucceed(err, "operation failed")
 		}
-		if err = os.WriteFile(dirs.BranchesMetadata, jsonData, 0644); err != nil {
+		if err = os.WriteFile(GetDir("branches_metadata"), jsonData, 0644); err != nil {
 			Debug("Failed to write branch metadata")
 			MustSucceed(err, "operation failed")
 		}
@@ -107,7 +107,7 @@ func SetBranch(branch string, configParam string) error {
 
 func ListBranches() []string {
 	Debug("Listing all branches")
-	entries, err := os.ReadDir(dirs.Branches)
+	entries, err := os.ReadDir(GetDir("branches"))
 	if err != nil {
 		Debug("Failed to read branches directory")
 		MustSucceed(err, "operation failed")

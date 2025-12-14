@@ -128,12 +128,13 @@ func EmptyDir(path string) error {
 }
 
 func FileExists(path string) bool {
-	exists := false
+	Debug("Checking if file exists: %s = %v", path)
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		exists = true
+		Debug("File exists: %s", path)
+		return true
 	}
-	Debug("Checking if file exists: %s = %v", path, exists)
-	return exists
+	Debug("File does not exist: %s", path)
+	return false
 }
 
 func IsModified(file1, file2 string) (bool, error) {

@@ -7,7 +7,7 @@ import (
 
 func GetConfig() *Config {
 	Debug("Reading config file")
-	config, err := os.ReadFile(dirs.Config)
+	config, err := os.ReadFile(GetDir("config"))
 	if err != nil {
 		Debug("Failed to read config file")
 		MustSucceed(err, "failed to read config file")

@@ -57,7 +57,7 @@ func runHistoryCommand() (returnCode int, history []History) {
 	BreakLine()
 	for _, commit := range *commits {
 		Debug("Processing commit: %s", commit.Id)
-		data, err := os.ReadFile(dirs.Commits + commit.Id + "/metadata.json")
+		data, err := os.ReadFile(GetDir("commits") + commit.Id + "/metadata.json")
 		if err != nil {
 			Debug("Failed to read commit metadata")
 			MustSucceed(err, "operation failed")
@@ -73,7 +73,7 @@ func runHistoryCommand() (returnCode int, history []History) {
 			author = "Unknown"
 		}
 
-		data, err = os.ReadFile(dirs.Commits + commit.Id + "/logs.json")
+		data, err = os.ReadFile(GetDir("commits") + commit.Id + "/logs.json")
 		if err != nil {
 			Debug("Failed to read commit logs")
 			MustSucceed(err, "operation failed")
