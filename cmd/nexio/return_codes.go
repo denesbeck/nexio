@@ -87,3 +87,8 @@ var PURGE_RETURN_CODES = map[int]string{
 	901: "Nexio purged successfully.",
 	902: "Cancelled.",
 }
+
+var CLEAN_RETURN_CODES = map[int]string{
+	1001: "Nexio cleaned successfully.",
+	1002: "Cancelled.",
+}
