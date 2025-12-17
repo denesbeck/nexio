@@ -3,7 +3,6 @@ package main
 import (
 	"os"
 	"slices"
-	"strconv"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -120,7 +119,7 @@ var switchCmd = &cobra.Command{
 func selectBranch(action string) string {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return ""
 	}
 
@@ -190,14 +189,14 @@ func indexOf(s, substr string) int {
 func runBranchCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return
 	}
 
 	branches, err := os.ReadDir(GetDir("branches"))
 	if err != nil {
 		Debug("%s", BRANCH_RETURN_CODES[217])
-		Fail(BRANCH_RETURN_CODES[217])
+		Fail("%s", BRANCH_RETURN_CODES[217])
 		return
 	}
 
@@ -232,43 +231,43 @@ func runBranchCommand() {
 func runCurrentCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return
 	}
 
 	currentBranchName := GetCurrentBranchName()
 	Debug("Current branch: %s", currentBranchName)
-	Info("Current branch: " + StyledBranch(currentBranchName))
+	Info("Current branch: %s", StyledBranch(currentBranchName))
 }
 
 func runDefaultCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return
 	}
 
 	defaultBranchName := GetDefaultBranchName()
 	Debug("Default branch: %s", defaultBranchName)
-	Info("Default branch: " + StyledBranch(defaultBranchName))
+	Info("Default branch: %s", StyledBranch(defaultBranchName))
 }
 
 func runNewCommand(branchName string, fromCommit string, fromBranch string) int {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001
 	}
 
 	if !IsValidBranchName(branchName) {
 		Debug("Invalid branch name: %s", branchName)
-		Fail(BRANCH_RETURN_CODES[201])
+		Fail("%s", BRANCH_RETURN_CODES[201])
 		return 201
 	}
 
 	if fromCommit != "" && fromBranch != "" {
 		Debug("Cannot create branch from both commit and branch")
-		Fail(BRANCH_RETURN_CODES[202])
+		Fail("%s", BRANCH_RETURN_CODES[202])
 		return 202
 	}
 
@@ -278,7 +277,7 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 		branches := ListBranches()
 		if !slices.Contains(branches, srcBranch) {
 			Debug("Source branch does not exist: %s", srcBranch)
-			Fail(BRANCH_RETURN_CODES[203])
+			Fail("%s", BRANCH_RETURN_CODES[203])
 			return 203
 		}
 	} else {
@@ -290,21 +289,21 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 		err := CopyCommitsToBranch(fromCommit, branchName)
 		if err != nil {
 			Debug("Failed to create branch from commit: %v", err)
-			Fail(BRANCH_RETURN_CODES[204])
+			Fail("%s", BRANCH_RETURN_CODES[204])
 			return 204
 		}
 	} else {
 		Debug("Creating branch from branch: %s", srcBranch)
 		if err := os.Mkdir(GetDir("branches")+branchName, 0755); err != nil {
 			Debug("Branch already exists: %s", branchName)
-			Fail(BRANCH_RETURN_CODES[205])
+			Fail("%s", BRANCH_RETURN_CODES[205])
 			return 205
 		}
 
 		CopyFile(GetDir("branches")+srcBranch+"/commits.json", GetDir("branches")+branchName+"/commits.json")
 	}
 	Debug("Branch created successfully: %s", branchName)
-	Success(BRANCH_RETURN_CODES[206])
+	Success("%s", BRANCH_RETURN_CODES[206])
 	runSwitchCommand(branchName)
 	return 206
 }
@@ -312,77 +311,77 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 func runDropCommand(branchName string) int {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001
 	}
 
 	branches := ListBranches()
 	if !slices.Contains(branches, branchName) {
 		Debug("Branch does not exist: %s", branchName)
-		Fail(BRANCH_RETURN_CODES[207])
+		Fail("%s", BRANCH_RETURN_CODES[207])
 		return 207
 	}
 
 	if currentBranchName := GetCurrentBranchName(); currentBranchName == branchName {
 		Debug("Cannot delete current branch: %s", branchName)
-		Fail(BRANCH_RETURN_CODES[208])
+		Fail("%s", BRANCH_RETURN_CODES[208])
 		return 208
 	}
 
 	if defaultBranchName := GetDefaultBranchName(); defaultBranchName == branchName {
 		Debug("Cannot delete default branch: %s", branchName)
-		Fail(BRANCH_RETURN_CODES[209])
+		Fail("%s", BRANCH_RETURN_CODES[209])
 		return 209
 	}
 
 	if err := os.RemoveAll(GetDir("branches") + branchName); err != nil {
 		Debug("Failed to delete branch: %s", branchName)
-		Fail(BRANCH_RETURN_CODES[207])
+		Fail("%s", BRANCH_RETURN_CODES[207])
 		return 207
 	}
 	Debug("Branch deleted successfully: %s", branchName)
-	Success(BRANCH_RETURN_CODES[210])
+	Success("%s", BRANCH_RETURN_CODES[210])
 	return 210
 }
 
 func runSwitchCommand(branchName string) int {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001
 	}
 
 	currentBranch := GetCurrentBranchName()
 	if currentBranch == branchName {
 		Debug("Already on branch: %s", branchName)
-		Fail(BRANCH_RETURN_CODES[211])
+		Fail("%s", BRANCH_RETURN_CODES[211])
 		return 211
 	}
 
 	branches := ListBranches()
 	if !slices.Contains(branches, branchName) {
 		Debug("Branch does not exist: %s", branchName)
-		Fail(BRANCH_RETURN_CODES[212])
+		Fail("%s", BRANCH_RETURN_CODES[212])
 		return 212
 	}
 
 	// Check for uncommitted changes before switching
 	if HasUncommittedChanges() {
 		BreakLine()
-		Fail(BRANCH_RETURN_CODES[214])
+		Fail("%s", BRANCH_RETURN_CODES[214])
 		BreakLine()
 
 		// Show what changes would be lost
 		stagingLogs := GetSyncedStagingLogsContent()
 		if len(*stagingLogs) > 0 {
-			Info("Staged changes (" + strconv.Itoa(len(*stagingLogs)) + ")")
+			Info("Staged changes (%d)", len(*stagingLogs))
 			PrintLogs(*stagingLogs)
 		}
 		BreakLine()
 
 		modified, deleted := GetModifiedOrDeletedFiles()
 		if len(modified) > 0 || len(deleted) > 0 {
-			Info("Unstaged changes (" + strconv.Itoa(len(modified)+len(deleted)) + ")")
+			Info("Unstaged changes (%d)", len(modified)+len(deleted))
 			for i, file := range modified {
 				modified[i] = pterm.FgYellow.Sprint(" MOD: ") + file
 			}
@@ -420,13 +419,13 @@ func runSwitchCommand(branchName string) int {
 			err := RestoreBlob(file.BlobHash, "./"+file.Path, os.FileMode(file.Mode))
 			if err != nil {
 				Debug("Failed to restore file %s: %v", file.Path, err)
-				Fail("Failed to restore file: " + file.Path)
+				Fail("Failed to restore file: %s", file.Path)
 				return 215
 			}
 		}
 	}
 	SetBranch(branchName, "current")
 	Debug("Switched to branch: %s", branchName)
-	Info(BRANCH_RETURN_CODES[213] + branchName)
+	Info("%s%s", BRANCH_RETURN_CODES[213], branchName)
 	return 213
 }

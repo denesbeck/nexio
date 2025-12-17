@@ -23,7 +23,7 @@ var removeCmd = &cobra.Command{
 func runRemoveCommand(filePath string) {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return
 	}
 
@@ -33,11 +33,11 @@ func runRemoveCommand(filePath string) {
 		err := RemoveLogEntry(logEntry.Id)
 		if err != nil {
 			Debug("Error removing log entry: %s", err.Error())
-			Fail(COMMON_RETURN_CODES[005])
+			Fail("%s", COMMON_RETURN_CODES[005])
 			return
 		}
-		Success(REMOVE_RETURN_CODES[801])
+		Success("%s", REMOVE_RETURN_CODES[801])
 	} else {
-		Info(REMOVE_RETURN_CODES[802])
+		Info("%s", REMOVE_RETURN_CODES[802])
 	}
 }

@@ -25,7 +25,7 @@ var initCmd = &cobra.Command{
 func runInitCommand() {
 	if IsInitialized() {
 		Debug("%s", COMMON_RETURN_CODES[003])
-		Fail(COMMON_RETURN_CODES[003])
+		Fail("%s", COMMON_RETURN_CODES[003])
 		return
 	}
 

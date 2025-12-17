@@ -128,7 +128,7 @@ var configCmd = &cobra.Command{
 func setConfig(key string, value string) int {
 	Debug("Setting config: key=%s, value=%s", key, value)
 	if initialized := IsInitialized(); !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001
 	}
 	config, err := os.ReadFile(GetDir("config"))
@@ -161,14 +161,14 @@ func setConfig(key string, value string) int {
 		MustSucceed(err, "operation failed")
 	}
 	Debug("Config updated successfully")
-	Info(Capitalize(key) + " set to " + color.BlueString(value) + ".")
+	Info("%s set to %s.", Capitalize(key), color.BlueString(value))
 	return 603
 }
 
 func getConfig(key string) (returnCode int, conf Config) {
 	Debug("Getting config: key=%s", key)
 	if initialized := IsInitialized(); !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001, Config{}
 	}
 	config := GetConfig()
@@ -176,60 +176,60 @@ func getConfig(key string) (returnCode int, conf Config) {
 	case "name":
 		if config.Name == "" {
 			Debug("%s", CONFIG_RETURN_CODES[605])
-			Fail(CONFIG_RETURN_CODES[605])
+			Fail("%s", CONFIG_RETURN_CODES[605])
 			return 605, Config{}
 		}
 		Debug("Name: %s", config.Name)
-		Info(Capitalize(key) + ": " + color.BlueString(config.Name))
+		Info("%s: %s", Capitalize(key), color.BlueString(config.Name))
 	case "email":
 		if config.Email == "" {
 			Debug("%s", CONFIG_RETURN_CODES[606])
-			Fail(CONFIG_RETURN_CODES[606])
+			Fail("%s", CONFIG_RETURN_CODES[606])
 			return 606, Config{}
 		}
 		Debug("Email: %s", config.Email)
-		Info(Capitalize(key) + ": " + color.BlueString(config.Email))
+		Info("%s: %s", Capitalize(key), color.BlueString(config.Email))
 	case "user":
 		if config.Name == "" || config.Email == "" {
 			Debug("%s", CONFIG_RETURN_CODES[607])
-			Fail(CONFIG_RETURN_CODES[607])
+			Fail("%s", CONFIG_RETURN_CODES[607])
 			return 607, Config{}
 		}
 		Debug("User: %s <%s>", config.Name, config.Email)
-		Info(Capitalize(key) + ": " + color.BlueString(config.Name+" <"+config.Email+">"))
+		Info("%s: %s", Capitalize(key), color.BlueString(config.Name+" <"+config.Email+">"))
 	}
 	return 604, *config
 }
 
 func setDefaultBranch(branch string) int {
 	if initialized := IsInitialized(); !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001
 	}
 	err := SetBranch(branch, "default")
 	if err != nil {
 		if err.Error() == BRANCH_RETURN_CODES[215] {
-			Info("Default branch already set to " + StyledBranch(branch) + ".")
+			Info("Default branch already set to %s.", StyledBranch(branch))
 			return 215
 		}
 		if err.Error() == BRANCH_RETURN_CODES[216] {
-			Fail("Branch does not exist: " + StyledBranch(branch))
+			Fail("Branch does not exist: %s", StyledBranch(branch))
 			return 216
 		}
 	}
 	Debug("Default branch set successfully")
-	Success("Default branch set to " + StyledBranch(branch) + ".")
+	Success("Default branch set to %s.", StyledBranch(branch))
 	return 602
 }
 
 func getDefaultBranch() (returnCode int, defaultBranch string) {
 	Debug("Getting default branch")
 	if initialized := IsInitialized(); !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001, ""
 	}
 	branch := GetDefaultBranchName()
 	Debug("Default branch: %s", branch)
-	Info("Default branch: " + StyledBranch(branch))
+	Info("Default branch: %s", StyledBranch(branch))
 	return 601, branch
 }

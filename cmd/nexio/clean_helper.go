@@ -83,7 +83,7 @@ func CleanOrphanedShards(hashes map[string]struct{}, dryRun bool, verbose bool) 
 			shardPrefix := shard.Name()
 			if _, exists := prefixes[shardPrefix]; !exists {
 				if verbose {
-					Debug("Removing orphaned shard: %s", shard.Name())
+					Info("Removing orphaned shard: %s", shard.Name())
 				}
 				if !dryRun {
 					err := os.RemoveAll(filepath.Join(GetDir("objects"), shard.Name()))
@@ -133,7 +133,7 @@ func CleanOrphanedBlobs(dryRun bool, verbose bool) (int64, int, int) {
 			for _, blob := range blobs {
 				if _, exists := hashes[blob.Name()]; !exists {
 					if verbose {
-						Debug("Removing orphaned blob: %s", blob.Name())
+						Info("Removing orphaned blob: %s", blob.Name())
 					}
 					if !dryRun {
 						err := os.Remove(filepath.Join(GetDir("objects"), shard.Name(), blob.Name()))
@@ -152,7 +152,7 @@ func CleanOrphanedBlobs(dryRun bool, verbose bool) (int64, int, int) {
 					deletedBlobs++
 					if objectCount == 0 {
 						if verbose {
-							Debug("Removing orphaned shard: %s", shard.Name())
+							Info("Removing orphaned shard: %s", shard.Name())
 						}
 						if !dryRun {
 							err := os.Remove(filepath.Join(GetDir("objects"), shard.Name()))

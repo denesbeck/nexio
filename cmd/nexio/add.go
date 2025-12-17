@@ -29,13 +29,13 @@ var addCmd = &cobra.Command{
 
 		initialized := IsInitialized()
 		if !initialized {
-			Fail(COMMON_RETURN_CODES[001])
+			Fail("%s", COMMON_RETURN_CODES[001])
 			return
 		}
 
 		filePaths, err := ExpandFilePaths(args)
 		if err != nil {
-			Fail("Failed to expand file paths: " + err.Error())
+			Fail("Failed to expand file paths: %s", err.Error())
 			return
 		}
 
@@ -78,7 +78,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 	hashedFile, err := HashFile(filePath)
 	if err != nil {
 		Debug("Error hashing file: %s", err.Error())
-		Fail(COMMON_RETURN_CODES[005])
+		Fail("%s", COMMON_RETURN_CODES[005])
 	}
 
 	fileStaged := IsFileStaged(filePath)
@@ -92,7 +92,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 				Debug("File was added but no longer exists, removing from staging")
 				if err := RemoveLogEntry(logEntry.Id); err != nil {
 					Debug("Error removing log entry: %s", err.Error())
-					Fail(COMMON_RETURN_CODES[005])
+					Fail("%s", COMMON_RETURN_CODES[005])
 				}
 				return 101
 			}
@@ -114,7 +114,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 				Debug("File was modified but no longer exists, removing from staging")
 				if err := RemoveLogEntry(logEntry.Id); err != nil {
 					Debug("Error removing log entry: %s", err.Error())
-					Fail(COMMON_RETURN_CODES[005])
+					Fail("%s", COMMON_RETURN_CODES[005])
 				}
 				LogOperation(generatedId, "REM", filePath, hashedFile)
 				return 104
@@ -125,7 +125,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 				_, err := WriteBlob(filePath)
 				if err != nil {
 					Debug("Error writing blob: %s", err.Error())
-					Fail(COMMON_RETURN_CODES[005])
+					Fail("%s", COMMON_RETURN_CODES[005])
 				}
 				return 105
 			}
@@ -138,7 +138,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 				Debug("File was removed but exists again, checking modifications")
 				if err := RemoveLogEntry(logEntry.Id); err != nil {
 					Debug("Error removing log entry: %s", err.Error())
-					Fail(COMMON_RETURN_CODES[005])
+					Fail("%s", COMMON_RETURN_CODES[005])
 				}
 				_, metadata := GetFileMetadata(filePath)
 				modified := hashedFile != metadata.BlobHash
@@ -146,7 +146,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 					Debug("File was removed but modified, adding back as modified")
 					if err := StageAndLog(generatedId, filePath, "modified"); err != nil {
 						Debug("Error staging file: %s", err.Error())
-						Fail(COMMON_RETURN_CODES[005])
+						Fail("%s", COMMON_RETURN_CODES[005])
 						return 114
 					}
 					return 107
@@ -174,7 +174,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 				Debug("File was committed and modified, staging as modified")
 				if err := StageAndLog(generatedId, filePath, "modified"); err != nil {
 					Debug("Error staging file: %s", err.Error())
-					Fail(COMMON_RETURN_CODES[005])
+					Fail("%s", COMMON_RETURN_CODES[005])
 					return 114
 				}
 				return 110
@@ -186,7 +186,7 @@ func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
 			Debug("File is new, staging as added")
 			if err := StageAndLog(generatedId, filePath, "added"); err != nil {
 				Debug("Error staging file: %s", err.Error())
-				Fail(COMMON_RETURN_CODES[005])
+				Fail("%s", COMMON_RETURN_CODES[005])
 				return 114
 			}
 			return 112

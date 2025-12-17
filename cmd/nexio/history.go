@@ -42,7 +42,7 @@ func runHistoryCommand() (returnCode int, history []History) {
 	commits := GetCommits()
 	if len(*commits) == 0 {
 		Debug("%s", HISTORY_RETURN_CODES[402])
-		Info(HISTORY_RETURN_CODES[402])
+		Info("%s", HISTORY_RETURN_CODES[402])
 		return 402, nil
 	}
 	if len(*commits) > 20 {

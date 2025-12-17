@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/pterm/pterm"
 	"github.com/spf13/cobra"
@@ -25,7 +24,7 @@ var statusCmd = &cobra.Command{
 
 func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 	if initialized := IsInitialized(); !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001, nil
 	}
 
@@ -39,7 +38,7 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 	if len(*content) != 0 {
 		Debug("Found %d files staged for commit.", len(*content))
 		BreakLine()
-		Info("Staged changes " + "(" + strconv.Itoa(len(*content)) + ")")
+		Info("Staged changes (%d)", len(*content))
 		PrintLogs(*content)
 	} else {
 		Debug("%s", STATUS_RETURN_CODES[501])
@@ -49,7 +48,7 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 	if len(modified) > 0 || len(deleted) > 0 {
 		Debug("Found %d tracked files that have been modified or deleted.", len(modified)+len(deleted))
 		BreakLine()
-		Info("Unstaged changes " + "(" + strconv.Itoa(len(modified)+len(deleted)) + ")")
+		Info("Unstaged changes (%d)", len(modified)+len(deleted))
 		for i, file := range modified {
 			modified[i] = pterm.FgYellow.Sprint(" MOD: ") + file
 		}
@@ -65,7 +64,7 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 	untracked := GetUntrackedFiles()
 	if len(untracked) != 0 {
 		BreakLine()
-		Info("Untracked files " + "(" + strconv.Itoa(len(untracked)) + ")")
+		Info("Untracked files (%d)", len(untracked))
 		TreeList(untracked, true)
 		BreakLine()
 		Text("Use "+Code("nexio add <file>...")+" to track", "")
@@ -76,7 +75,7 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 	if len(*content) == 0 && len(modified) == 0 && len(deleted) == 0 && len(untracked) == 0 {
 		Debug("%s", STATUS_RETURN_CODES[505])
 		BreakLine()
-		Info(STATUS_RETURN_CODES[505])
+		Info("%s", STATUS_RETURN_CODES[505])
 	}
 	BreakLine()
 	Debug("Status command completed successfully")

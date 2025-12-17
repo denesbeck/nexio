@@ -22,13 +22,13 @@ var workdirCmd = &cobra.Command{
 
 func runWorkdirCommand() (returnCode int, workdirContent []FileListEntry) {
 	if initialized := IsInitialized(); !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001, nil
 	}
 
 	commitId := GetLastCommit().Id
 	if commitId == "" {
-		Info(WORKDIR_RETURN_CODES[302])
+		Info("%s", WORKDIR_RETURN_CODES[302])
 		return 302, nil
 	}
 

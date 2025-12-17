@@ -9,9 +9,9 @@ func FatalError(format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
 	Debug("Fatal error: %s", message)
 	BreakLine()
-	Fail(fmt.Sprintf("Error: %s", message))
+	Fail("Error: %s", message)
 	fmt.Fprintln(os.Stderr)
-	Fail("Try running with " + Code("DEBUG=true") + " for more information.")
+	Fail("Try running with %s for more information.", Code("DEBUG=true"))
 	BreakLine()
 	os.Exit(1)
 }

@@ -44,35 +44,35 @@ func DisplayAddResults(results []AddResult) {
 
 	if len(added) > 0 {
 		BreakLine()
-		Success("󰐙 Added to staging " + FormatFileCount(len(added)))
+		Success("󰐙 Added to staging %s", FormatFileCount(len(added)))
 		list := GenerateLeveledList(added)
 		Tree(list, ".", true)
 	}
 
 	if len(updated) > 0 {
 		BreakLine()
-		Success("󰓦 Updated in staging " + FormatFileCount(len(updated)))
+		Success("󰓦 Updated in staging %s", FormatFileCount(len(updated)))
 		list := GenerateLeveledList(updated)
 		Tree(list, ".", true)
 	}
 
 	if len(removed) > 0 {
 		BreakLine()
-		Info("󰍷 Removed from filesystem " + FormatFileCount(len(removed)))
+		Info("󰍷 Removed from filesystem %s", FormatFileCount(len(removed)))
 		list := GenerateLeveledList(removed)
 		Tree(list, ".", true)
 	}
 
 	if len(alreadyStaged) > 0 {
 		BreakLine()
-		Info(" Already staged " + FormatFileCount(len(alreadyStaged)))
+		Info(" Already staged %s", FormatFileCount(len(alreadyStaged)))
 		list := GenerateLeveledList(alreadyStaged)
 		Tree(list, ".", true)
 	}
 
 	if len(failed) > 0 {
 		BreakLine()
-		Fail(" Failed (" + FormatFileCount(len(failed)) + ")")
+		Fail(" Failed (%s)", FormatFileCount(len(failed)))
 		list := GenerateLeveledList(failed)
 		Tree(list, ".", true)
 	}

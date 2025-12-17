@@ -28,12 +28,12 @@ var cleanCmd = &cobra.Command{
 func runCleanCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return
 	}
 	freedBytes, deletedBlobs, failedBlobs := CleanOrphanedBlobs(DryRun, Verbose)
 	BreakLine()
-	Success(CLEAN_RETURN_CODES[1001])
+	Success("%s", CLEAN_RETURN_CODES[1001])
 	BreakLine()
 	Text("Freed "+formatSize(freedBytes), "")
 	Text("Deleted "+strconv.Itoa(deletedBlobs)+" blobs", "")

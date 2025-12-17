@@ -54,7 +54,7 @@ var commitCmd = &cobra.Command{
 func runInteractiveCommit() {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return
 	}
 
@@ -64,7 +64,7 @@ func runInteractiveCommit() {
 	empty := IsStagingLogsEmpty()
 	if empty {
 		Debug("No changes staged for commit.")
-		Fail(COMMIT_RETURN_CODES[701])
+		Fail("%s", COMMIT_RETURN_CODES[701])
 		return
 	}
 
@@ -150,7 +150,7 @@ func displayInteractiveCommitSuccess(commitId string, addCount, modCount, remCou
 	stop()
 
 	BreakLine()
-	Success("Commit registered! (" + StyledCommit(shortCommitId) + ")")
+	Success("Commit registered! (%s)", StyledCommit(shortCommitId))
 	BreakLine()
 
 	Info("Changes:")
@@ -175,7 +175,7 @@ func displayInteractiveCommitSuccess(commitId string, addCount, modCount, remCou
 func runCommitCommand(message string) (returnCode int, commitId string) {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return 001, ""
 	}
 
@@ -185,7 +185,7 @@ func runCommitCommand(message string) (returnCode int, commitId string) {
 	empty := IsStagingLogsEmpty()
 	if empty {
 		Debug("No changes staged for commit.")
-		Fail(COMMIT_RETURN_CODES[701])
+		Fail("%s", COMMIT_RETURN_CODES[701])
 		return 701, ""
 	}
 
@@ -204,7 +204,7 @@ func runCommitCommand(message string) (returnCode int, commitId string) {
 	stop()
 	BreakLine()
 
-	Success(COMMIT_RETURN_CODES[702])
+	Success("%s", COMMIT_RETURN_CODES[702])
 	BreakLine()
 	return 702, commitId
 }

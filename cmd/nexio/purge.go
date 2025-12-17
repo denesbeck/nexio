@@ -25,7 +25,7 @@ var purgeCmd = &cobra.Command{
 func runPurgeCommand() {
 	initialized := IsInitialized()
 	if !initialized {
-		Fail(COMMON_RETURN_CODES[001])
+		Fail("%s", COMMON_RETURN_CODES[001])
 		return
 	}
 	BreakLine()
@@ -60,7 +60,7 @@ func runPurgeCommand() {
 	BreakLine()
 	if !result {
 		Debug("User cancelled purge command.")
-		Info(PURGE_RETURN_CODES[902])
+		Info("%s", PURGE_RETURN_CODES[902])
 		BreakLine()
 		return
 	}
@@ -82,6 +82,6 @@ func runPurgeCommand() {
 	stop()
 
 	BreakLine()
-	Success(PURGE_RETURN_CODES[901])
+	Success("%s", PURGE_RETURN_CODES[901])
 	BreakLine()
 }

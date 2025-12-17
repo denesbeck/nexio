@@ -10,25 +10,29 @@ import (
 	"github.com/pterm/pterm/putils"
 )
 
-func Success(content string) {
+func Success(format string, args ...any) {
+	content := fmt.Sprintf(format, args...)
 	contentStyle := pterm.NewStyle(pterm.Bold)
 	iconStyle := pterm.NewStyle(pterm.FgLightGreen, pterm.Bold)
 	contentStyle.Println(iconStyle.Sprint("> ") + content + "  ")
 }
 
-func Info(content string) {
+func Info(format string, args ...any) {
+	content := fmt.Sprintf(format, args...)
 	contentStyle := pterm.NewStyle(pterm.Bold)
 	iconStyle := pterm.NewStyle(pterm.FgLightBlue, pterm.Bold)
 	contentStyle.Println(iconStyle.Sprint("> ") + content + "  ")
 }
 
-func Warning(content string) {
+func Warning(format string, args ...any) {
+	content := fmt.Sprintf(format, args...)
 	contentStyle := pterm.NewStyle(pterm.Bold)
 	iconStyle := pterm.NewStyle(pterm.FgLightYellow, pterm.Bold)
 	contentStyle.Println(iconStyle.Sprint("> ") + content + "  ")
 }
 
-func Fail(content string) {
+func Fail(format string, args ...any) {
+	content := fmt.Sprintf(format, args...)
 	contentStyle := pterm.NewStyle(pterm.Bold)
 	iconStyle := pterm.NewStyle(pterm.FgLightRed, pterm.Bold)
 	contentStyle.Println(iconStyle.Sprint("> ") + content + "  ")
