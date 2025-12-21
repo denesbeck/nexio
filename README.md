@@ -114,6 +114,7 @@ export PATH="$PATH:/path/to/nexio"
 | `branch`   | Manage branches (new, drop, switch, default, current)             |
 | `workdir`  | List files in the current working directory state                 |
 | `config`   | Get or set configuration values (username, email, default-branch) |
+| `clean`    | Clean orphaned blobs from the object store                        |
 | `purge`    | Remove Nexio and all its data (irreversible)                   |
 
 For detailed command usage, run:
