@@ -25,18 +25,19 @@ var cleanCmd = &cobra.Command{
 	},
 }
 
-func runCleanCommand() {
+func runCleanCommand() (returnCode int, freedBytes int64, deletedBlobs int, failedBlobs int) {
 	initialized := IsInitialized()
 	if !initialized {
 		Fail("%s", COMMON_RETURN_CODES[001])
-		return
+		return 001, 0, 0, 0
 	}
-	freedBytes, deletedBlobs, failedBlobs := CleanOrphanedBlobs(DryRun, Verbose)
+	freedBytes, deletedBlobs, failedBlobs = CleanOrphanedBlobs(DryRun, Verbose)
 	BreakLine()
 	Success("%s", CLEAN_RETURN_CODES[1001])
 	BreakLine()
-	Text("Freed "+formatSize(freedBytes), "")
-	Text("Deleted "+strconv.Itoa(deletedBlobs)+" blobs", "")
-	Text("Failed to delete "+strconv.Itoa(failedBlobs)+" blobs", "")
+	Text("Freed "+formatSize(freedBytes), "")
+	Text("Deleted "+strconv.Itoa(deletedBlobs)+" blobs", "")
+	Text("Failed to delete "+strconv.Itoa(failedBlobs)+" blobs", "")
 	BreakLine()
+	return 1001, freedBytes, deletedBlobs, failedBlobs
 }

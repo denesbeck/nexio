@@ -1,3 +1,5 @@
+//go:build ignore
+
 // Nexio Storage Benchmark: JSON vs SQLite
 //
 // This script compares the performance of JSON file-based storage vs SQLite

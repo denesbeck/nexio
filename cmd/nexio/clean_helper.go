@@ -131,9 +131,18 @@ func CleanOrphanedBlobs(dryRun bool, verbose bool) (int64, int, int) {
 			}
 			objectCount := len(blobs)
 			for _, blob := range blobs {
-				if _, exists := hashes[blob.Name()]; !exists {
+				// Reconstruct the full hash from shard prefix + blob filename
+				fullHash := shard.Name() + blob.Name()
+				if _, exists := hashes[fullHash]; !exists {
 					if verbose {
 						Info("Removing orphaned blob: %s", blob.Name())
+					}
+					// Get blob info BEFORE removing (to calculate freed bytes)
+					info, err := blob.Info()
+					if err != nil {
+						Debug("Failed to get blob info: %s", err)
+					} else {
+						freedBytes += info.Size()
 					}
 					if !dryRun {
 						err := os.Remove(filepath.Join(GetDir("objects"), shard.Name(), blob.Name()))
@@ -141,12 +150,6 @@ func CleanOrphanedBlobs(dryRun bool, verbose bool) (int64, int, int) {
 							Debug("Failed to remove orphaned blob: %s", err)
 							failedBlobs++
 						}
-					}
-					info, err := blob.Info()
-					if err != nil {
-						Debug("Failed to get blob info: %s", err)
-					} else {
-						freedBytes += info.Size()
 					}
 					objectCount--
 					deletedBlobs++
