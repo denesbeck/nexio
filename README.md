@@ -164,6 +164,13 @@ bash ./scripts/run-tests.sh
 ```
 nexio/
 ├── cmd/nexio/          # CLI application and commands
+│   ├── db.go           # SQLite connection, schema, transactions
+│   ├── db_staging.go   # Staging area CRUD operations
+│   ├── db_commits.go   # Commit CRUD, metadata, logs
+│   ├── db_branches.go  # Branch CRUD operations
+│   ├── db_files.go     # File list operations, referenced hash collection
+│   └── ...             # Commands, helpers, UI, tests
+├── docs/               # Documentation
 ├── scripts/            # Build and test scripts
 ├── .github/workflows/  # CI/CD configuration
 └── go.mod              # Go module dependencies
@@ -175,17 +182,27 @@ nexio/
 - [Cobra](https://github.com/spf13/cobra) - CLI framework
 - [pterm](https://github.com/pterm/pterm) - Terminal output styling
 - [fatih/color](https://github.com/fatih/color) - Color output
+- [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) - Pure Go SQLite driver (no CGO)
 
 ## How It Works
 
 Nexio stores version control data in a `.nexio` directory at the root of your project:
 
-- **Staging area**: Tracks files prepared for commit
-- **Commits**: Stores snapshots of file states with metadata
-- **Branches**: Maintains separate lines of development
-- **Configuration**: Stores user settings and repository configuration
+```
+.nexio/
+├── index.db       # SQLite database (metadata, staging, commits, branches)
+├── objects/       # Content-addressable blob storage
+│   ├── ab/
+│   │   └── cdef1234...   # Compressed file content, keyed by SHA-256 hash
+│   └── ...
+└── config.json    # User configuration (name, email)
+```
 
-Unlike Git, Nexio uses a simpler file-based storage system and YAML for metadata, making the internals easier to understand and inspect.
+- **`index.db`**: A single SQLite database that stores all metadata -- staging area, commits, branches, file lists, and commit logs. Using SQLite provides atomic operations, indexed lookups, and significantly better performance for large repositories compared to the previous JSON file-based approach.
+- **`objects/`**: Content-addressable blob storage. Files are hashed (SHA-256) and stored in a two-level directory structure (first two hex chars as shard directory). Identical file contents are automatically deduplicated.
+- **`config.json`**: Stores user settings (name, email).
+
+Commits are shared across branches -- creating a branch simply points the new branch's head to an existing commit. Branch membership is determined by walking the parent chain from each branch's head commit.
 
 ## Limitations
 
