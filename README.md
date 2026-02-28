@@ -27,6 +27,15 @@ Nexio is an educational project that demonstrates the fundamental principles beh
 
 ## Installation
 
+### Homebrew (recommended)
+
+```bash
+brew tap denesbeck/nexio
+brew install nexio
+```
+
+### Build from source
+
 1. Clone the repository:
 
 ```bash
