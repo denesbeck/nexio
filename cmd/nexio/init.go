@@ -58,7 +58,7 @@ func runInitCommand() {
 	List("Next steps:", []string{
 		"nexio config set name \"Your Name\"",
 		"nexio config set email \"you@example.com\"",
-		"nexio add <file>",
+		"nexio stage <file>",
 		"nexio commit -m \"Initial commit\""}, true)
 
 	BreakLine()

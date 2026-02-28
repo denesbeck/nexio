@@ -8,7 +8,7 @@ var COMMON_RETURN_CODES = map[int]string{
 	005: "Unexpected error.",
 }
 
-var ADD_RETURN_CODES = map[int]string{
+var STAGE_RETURN_CODES = map[int]string{
 	100: "Fallback RC (should not occur).",
 	101: "File no longer exists, removed from staging.",            // file was staged (ADD), but it got removed
 	102: "Staged file updated.",                                    // file was staged (ADD), but it got modified
@@ -78,7 +78,7 @@ var COMMIT_RETURN_CODES = map[int]string{
 	702: "Commit registered successfully.",
 }
 
-var REMOVE_RETURN_CODES = map[int]string{
+var UNSTAGE_RETURN_CODES = map[int]string{
 	801: "File removed from staging.",
 	802: "File was not staged.",
 }

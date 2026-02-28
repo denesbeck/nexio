@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestRemove(t *testing.T) {
+func TestUnstage(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -13,13 +13,13 @@ func TestRemove(t *testing.T) {
 	file := namespace + "file.txt"
 	os.Create(file)
 
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	isLogged, logEntry := LogEntryLookup("*", file)
 	if !isLogged || logEntry.Op != "ADD" {
 		t.Errorf("Expected log entry to be added with ADD operation, got %s", logEntry.Op)
 	}
 
-	runRemoveCommand(file)
+	runUnstageCommand(file)
 	isLogged, _ = LogEntryLookup("*", file)
 	if isLogged {
 		t.Errorf("Expected log entry to be removed")

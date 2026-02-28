@@ -17,7 +17,7 @@ func TestCommit(t *testing.T) {
 	for i := range 10 {
 		file := namespace + "file" + strconv.Itoa(i) + ".txt"
 		os.Create(file)
-		runAddCommand(file, false)
+		runStageCommand(file, false)
 		returnCode, commitId := runCommitCommand("test commit " + strconv.Itoa(i))
 		if returnCode != 702 {
 			t.Errorf("Expected 702, got %d", returnCode)
@@ -65,7 +65,7 @@ func Test_CountCommits(t *testing.T) {
 	// Make a commit
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("First commit")
 
 	count = CountCommits()
@@ -75,7 +75,7 @@ func Test_CountCommits(t *testing.T) {
 
 	// Make another commit
 	os.WriteFile(file, []byte("updated"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Second commit")
 
 	count = CountCommits()
@@ -94,7 +94,7 @@ func Test_GetCommits_Simple(t *testing.T) {
 	for i := 1; i <= 3; i++ {
 		file := namespace + "file" + fmt.Sprintf("%d", i) + ".txt"
 		os.WriteFile(file, []byte("content"), 0644)
-		runAddCommand(file, false)
+		runStageCommand(file, false)
 		runCommitCommand(fmt.Sprintf("Commit %d", i))
 	}
 
@@ -113,7 +113,7 @@ func Test_GetFileListContent(t *testing.T) {
 	// Create a file and commit it
 	file := namespace + "test_file.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	_, commitId := runCommitCommand("Test commit")
 
 	// Get file list content
@@ -142,7 +142,7 @@ func Test_GetLastCommitByBranch(t *testing.T) {
 	// Make a commit
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	_, commitId := runCommitCommand("Test commit")
 
 	// Get last commit by branch
@@ -186,7 +186,7 @@ func Test_ProcessFileList_RemoveOperation(t *testing.T) {
 	// Create and commit a file
 	file := namespace + "file_to_remove.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Add file")
 
 	// Get last commit ID
@@ -201,11 +201,11 @@ func Test_ProcessFileList_RemoveOperation(t *testing.T) {
 		t.Errorf("Expected 1 file after first commit, got %d", len(*fileList))
 	}
 
-	// Delete file and use runAddCommand with "." to detect the deletion
+	// Delete file and use runStageCommand to detect the deletion
 	os.Remove(file)
 
 	// Stage the deletion by adding with the file path (should detect it's deleted)
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 109 {
 		t.Logf("Staging deletion returned code %d (expected 109)", result.ReturnCode)
 	}
@@ -231,12 +231,12 @@ func Test_ProcessFileList_ModifyOperation(t *testing.T) {
 	// Create and commit a file
 	file := namespace + "file_to_modify.txt"
 	os.WriteFile(file, []byte("original"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Add file")
 
 	// Modify and stage the modification
 	os.WriteFile(file, []byte("modified"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 
 	// Make another commit with the modification
 	_, commitId := runCommitCommand("Modify file")

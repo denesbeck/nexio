@@ -28,7 +28,7 @@ func Test_NewBranchFromCommit(t *testing.T) {
 
 	for i := 1; i <= 100; i++ {
 		os.Create(namespace + "file" + strconv.Itoa(i) + ".txt")
-		runAddCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
+		runStageCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
 		runCommitCommand("test commit " + strconv.Itoa(i))
 	}
 
@@ -36,7 +36,7 @@ func Test_NewBranchFromCommit(t *testing.T) {
 
 	for i := 101; i <= 200; i++ {
 		os.Create(namespace + "file" + strconv.Itoa(i) + ".txt")
-		runAddCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
+		runStageCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
 		runCommitCommand("test commit " + strconv.Itoa(i))
 	}
 	countCommitsOriginalBranch := len(*GetCommits())
@@ -69,7 +69,7 @@ func Test_NewBranchFromBranch(t *testing.T) {
 	runNewCommand("test-branch", "", "")
 	for i := 1; i < 4; i++ {
 		os.Create(namespace + "file" + strconv.Itoa(i) + ".txt")
-		runAddCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
+		runStageCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
 		runCommitCommand("test commit " + strconv.Itoa(i))
 	}
 	lastCommitOriginalBranch := GetLastCommit().Id

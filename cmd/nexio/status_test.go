@@ -10,7 +10,7 @@ func Test_IsFileStaged(t *testing.T) {
 	runInitCommand()
 	file := namespace + "file.txt"
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	if !IsFileStaged(file) {
 		t.Errorf("Expected file %s to be staged", file)
 	}
@@ -25,7 +25,7 @@ func Test_IsFileDeleted(t *testing.T) {
 	runInitCommand()
 	file := namespace + "file.txt"
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("test commit")
 
 	os.Remove(file)
@@ -51,7 +51,7 @@ func Test_GetFileMetadata(t *testing.T) {
 	runInitCommand()
 	file := namespace + "file.txt"
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("test commit")
 
 	isCommitted, metadata := GetFileMetadata(file)
@@ -80,7 +80,7 @@ func Test_StatusCommand(t *testing.T) {
 	runInitCommand()
 	file := namespace + "file.txt"
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 
 	returnCode, stagingLogs := runStatusCommand()
 
@@ -92,7 +92,7 @@ func Test_StatusCommand(t *testing.T) {
 		t.Errorf("Expected staging logs to not be empty")
 	}
 
-	runRemoveCommand(file)
+	runUnstageCommand(file)
 
 	returnCode, stagingLogs = runStatusCommand()
 
@@ -126,7 +126,7 @@ func Test_StatusCommand_WithModifiedFiles(t *testing.T) {
 	// Create and commit a file
 	file := namespace + "modified_test.txt"
 	os.WriteFile(file, []byte("original content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Initial commit")
 
 	// Modify the file
@@ -148,7 +148,7 @@ func Test_StatusCommand_WithDeletedFiles(t *testing.T) {
 	// Create and commit a file
 	file := namespace + "deleted_test.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Initial commit")
 
 	// Delete the file

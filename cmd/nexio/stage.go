@@ -5,27 +5,27 @@ import (
 )
 
 func init() {
-	addCmd.Flags().BoolVarP(&Force, "force", "f", false, "Disregard the rules defined in `.nexio.rules.yml`")
+	stageCmd.Flags().BoolVarP(&Force, "force", "f", false, "Disregard the rules defined in `.nexio.rules.yml`")
 
-	rootCmd.AddCommand(addCmd)
+	rootCmd.AddCommand(stageCmd)
 }
 
 var Force bool
 
-type AddResult struct {
+type StageResult struct {
 	FilePath   string
 	ReturnCode int
 	Message    string
 	Success    bool
 }
 
-var addCmd = &cobra.Command{
-	Use:     "add",
-	Short:   "Add the selected files to the staging area",
-	Example: "nexio add <path/to/your/file>\nnexio add file1 file2 file3\nnexio add .",
+var stageCmd = &cobra.Command{
+	Use:     "stage",
+	Short:   "Stage the selected files for commit",
+	Example: "nexio stage <path/to/your/file>\nnexio stage file1 file2 file3\nnexio stage .",
 	Args:    cobra.MinimumNArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
-		Debug("Starting add command with args: %v", args)
+		Debug("Starting stage command with args: %v", args)
 
 		initialized := IsInitialized()
 		if !initialized {
@@ -41,23 +41,23 @@ var addCmd = &cobra.Command{
 
 		Debug("Processing %d files", len(filePaths))
 
-		results := make([]AddResult, 0, len(filePaths))
+		results := make([]StageResult, 0, len(filePaths))
 		for _, filePath := range filePaths {
-			result := runAddCommand(filePath, Force)
+			result := runStageCommand(filePath, Force)
 			results = append(results, result)
 		}
-		DisplayAddResults(results)
+		DisplayStageResults(results)
 	},
 }
 
-func runAddCommand(filePath string, force bool) AddResult {
-	result := AddResult{FilePath: filePath}
-	returnCode := runAddCommandInternal(filePath, force, &result)
+func runStageCommand(filePath string, force bool) StageResult {
+	result := StageResult{FilePath: filePath}
+	returnCode := runStageCommandInternal(filePath, force, &result)
 	result.ReturnCode = returnCode
 	return result
 }
 
-func runAddCommandInternal(filePath string, force bool, _ *AddResult) int {
+func runStageCommandInternal(filePath string, force bool, _ *StageResult) int {
 	Debug("Processing file: %s", filePath)
 
 	if err := ValidatePath(filePath); err != nil {

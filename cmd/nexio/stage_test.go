@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func Test_AddToStaging(t *testing.T) {
+func Test_StageToStaging(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -15,7 +15,7 @@ func Test_AddToStaging(t *testing.T) {
 		// create files: file1.txt, file2.txt, file3.txt
 		os.Create(namespace + "file" + strconv.Itoa(i) + ".txt")
 		// add files to staging
-		runAddCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
+		runStageCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
 		// check if files are staged
 		if IsFileStaged(namespace+"file"+strconv.Itoa(i)+".txt") == false {
 			t.Errorf("File not staged")
@@ -25,12 +25,12 @@ func Test_AddToStaging(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_DisplayAddResults(t *testing.T) {
+func Test_DisplayStageResults(t *testing.T) {
 	// Test with empty results
-	DisplayAddResults([]AddResult{})
+	DisplayStageResults([]StageResult{})
 
 	// Test with various result types
-	results := []AddResult{
+	results := []StageResult{
 		{FilePath: "added1.txt", ReturnCode: 112},
 		{FilePath: "added2.txt", ReturnCode: 110},
 		{FilePath: "updated1.txt", ReturnCode: 102},
@@ -51,11 +51,11 @@ func Test_DisplayAddResults(t *testing.T) {
 	// Just test that it doesn't panic
 	defer func() {
 		if r := recover(); r != nil {
-			t.Errorf("DisplayAddResults panicked: %v", r)
+			t.Errorf("DisplayStageResults panicked: %v", r)
 		}
 	}()
 
-	DisplayAddResults(results)
+	DisplayStageResults(results)
 }
 
 func Test_ExpandFilePaths(t *testing.T) {
@@ -106,7 +106,7 @@ func Test_StageAndLog_EdgeCases(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode101(t *testing.T) {
+func Test_StageCmdStatusCode101(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -114,9 +114,9 @@ func Test_AddCmdStatusCode101(t *testing.T) {
 	file := namespace + "file.txt"
 
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	os.Remove(file)
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 101 {
 		t.Errorf("Expected 101, got %d", result.ReturnCode)
 	}
@@ -124,7 +124,7 @@ func Test_AddCmdStatusCode101(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode102(t *testing.T) {
+func Test_StageCmdStatusCode102(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -132,9 +132,9 @@ func Test_AddCmdStatusCode102(t *testing.T) {
 	file := namespace + "file.txt"
 
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	os.WriteFile(file, []byte("test"), 0644)
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 102 {
 		t.Errorf("Expected 102, got %d", result.ReturnCode)
 	}
@@ -142,14 +142,14 @@ func Test_AddCmdStatusCode102(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode103(t *testing.T) {
+func Test_StageCmdStatusCode103(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
 
 	os.Create(namespace + "file.txt")
-	runAddCommand(namespace+"file.txt", false)
-	result := runAddCommand(namespace+"file.txt", false)
+	runStageCommand(namespace+"file.txt", false)
+	result := runStageCommand(namespace+"file.txt", false)
 	if result.ReturnCode != 103 {
 		t.Errorf("Expected 103, got %d", result.ReturnCode)
 	}
@@ -157,7 +157,7 @@ func Test_AddCmdStatusCode103(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode104(t *testing.T) {
+func Test_StageCmdStatusCode104(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -170,7 +170,7 @@ func Test_AddCmdStatusCode104(t *testing.T) {
 
 	os.Remove(file)
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 104 {
 		t.Errorf("Expected 104, got %d", result.ReturnCode)
 	}
@@ -178,7 +178,7 @@ func Test_AddCmdStatusCode104(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode105(t *testing.T) {
+func Test_StageCmdStatusCode105(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -191,7 +191,7 @@ func Test_AddCmdStatusCode105(t *testing.T) {
 
 	os.WriteFile(file, []byte("test"), 0644)
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 105 {
 		t.Errorf("Expected 105, got %d", result.ReturnCode)
 	}
@@ -199,7 +199,7 @@ func Test_AddCmdStatusCode105(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode106(t *testing.T) {
+func Test_StageCmdStatusCode106(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -210,7 +210,7 @@ func Test_AddCmdStatusCode106(t *testing.T) {
 	os.Create(file)
 	StageAndLog(hash, file, "modified")
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 106 {
 		t.Errorf("Expected 106, got %d", result.ReturnCode)
 	}
@@ -218,7 +218,7 @@ func Test_AddCmdStatusCode106(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode107(t *testing.T) {
+func Test_StageCmdStatusCode107(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -235,7 +235,7 @@ func Test_AddCmdStatusCode107(t *testing.T) {
 
 	os.WriteFile(file, []byte("test"), 0644)
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 107 {
 		t.Errorf("Expected 107, got %d", result.ReturnCode)
 	}
@@ -243,7 +243,7 @@ func Test_AddCmdStatusCode107(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode8(t *testing.T) {
+func Test_StageCmdStatusCode8(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -260,7 +260,7 @@ func Test_AddCmdStatusCode8(t *testing.T) {
 
 	os.Remove(file)
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 108 {
 		t.Errorf("Expected 108, got %d", result.ReturnCode)
 	}
@@ -268,7 +268,7 @@ func Test_AddCmdStatusCode8(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode109(t *testing.T) {
+func Test_StageCmdStatusCode109(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -282,7 +282,7 @@ func Test_AddCmdStatusCode109(t *testing.T) {
 
 	os.Remove(file)
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 109 {
 		t.Errorf("Expected 109, got %d", result.ReturnCode)
 	}
@@ -290,7 +290,7 @@ func Test_AddCmdStatusCode109(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode110(t *testing.T) {
+func Test_StageCmdStatusCode110(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -304,7 +304,7 @@ func Test_AddCmdStatusCode110(t *testing.T) {
 
 	os.WriteFile(file, []byte("test"), 0644)
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 110 {
 		t.Errorf("Expected 110, got %d", result.ReturnCode)
 	}
@@ -312,7 +312,7 @@ func Test_AddCmdStatusCode110(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode111(t *testing.T) {
+func Test_StageCmdStatusCode111(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -324,7 +324,7 @@ func Test_AddCmdStatusCode111(t *testing.T) {
 	StageAndLog(hash, file, "added")
 	runCommitCommand("test")
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 111 {
 		t.Errorf("Expected 111, got %d", result.ReturnCode)
 	}
@@ -332,7 +332,7 @@ func Test_AddCmdStatusCode111(t *testing.T) {
 	os.RemoveAll(namespace)
 }
 
-func Test_AddCmdStatusCode112(t *testing.T) {
+func Test_StageCmdStatusCode112(t *testing.T) {
 	os.RemoveAll(namespace)
 
 	runInitCommand()
@@ -341,7 +341,7 @@ func Test_AddCmdStatusCode112(t *testing.T) {
 
 	os.Create(file)
 
-	result := runAddCommand(file, false)
+	result := runStageCommand(file, false)
 	if result.ReturnCode != 112 {
 		t.Errorf("Expected 112, got %d", result.ReturnCode)
 	}
@@ -403,7 +403,7 @@ func Test_ExpandFilePaths_WithStagedDeletedFiles(t *testing.T) {
 	// Create and stage a file
 	testFile := namespace + "staged_file.txt"
 	os.WriteFile(testFile, []byte("content"), 0644)
-	runAddCommand(testFile, false)
+	runStageCommand(testFile, false)
 
 	// Delete the file from filesystem
 	os.Remove(testFile)
@@ -429,7 +429,7 @@ func Test_ExpandFilePaths_WithCommittedDeletedFiles(t *testing.T) {
 	// Create, stage, and commit a file
 	testFile := namespace + "committed_file.txt"
 	os.WriteFile(testFile, []byte("content"), 0644)
-	runAddCommand(testFile, false)
+	runStageCommand(testFile, false)
 	runCommitCommand("Initial commit")
 
 	// Delete the committed file from filesystem

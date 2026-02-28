@@ -65,7 +65,7 @@ func Test_CollectReferencedHashes_WithCommits(t *testing.T) {
 	os.WriteFile(file1, []byte("content1"), 0644)
 	hash1, _ := HashFile(file1)
 
-	runAddCommand(file1, false)
+	runStageCommand(file1, false)
 	runCommitCommand("Test commit 1")
 
 	// Create and commit another file
@@ -73,7 +73,7 @@ func Test_CollectReferencedHashes_WithCommits(t *testing.T) {
 	os.WriteFile(file2, []byte("content2"), 0644)
 	hash2, _ := HashFile(file2)
 
-	runAddCommand(file2, false)
+	runStageCommand(file2, false)
 	runCommitCommand("Test commit 2")
 
 	hashes := CollectReferencedHashes()
@@ -98,7 +98,7 @@ func Test_CollectReferencedHashes_WithStagingLogs(t *testing.T) {
 	os.WriteFile(file, []byte("staged content"), 0644)
 	hash, _ := HashFile(file)
 
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 
 	hashes := CollectReferencedHashes()
 
@@ -122,7 +122,7 @@ func Test_CollectReferencedHashes_MixedCommitsAndStaging(t *testing.T) {
 	os.WriteFile(committedFile, []byte("committed content"), 0644)
 	committedHash, _ := HashFile(committedFile)
 
-	runAddCommand(committedFile, false)
+	runStageCommand(committedFile, false)
 	runCommitCommand("Test commit")
 
 	// Create and stage another file (don't commit)
@@ -130,7 +130,7 @@ func Test_CollectReferencedHashes_MixedCommitsAndStaging(t *testing.T) {
 	os.WriteFile(stagedFile, []byte("staged content"), 0644)
 	stagedHash, _ := HashFile(stagedFile)
 
-	runAddCommand(stagedFile, false)
+	runStageCommand(stagedFile, false)
 
 	hashes := CollectReferencedHashes()
 
@@ -166,10 +166,10 @@ func Test_CollectReferencedHashes_DeduplicatesHashes(t *testing.T) {
 		t.Fatalf("Expected identical content to produce same hash")
 	}
 
-	runAddCommand(file1, false)
+	runStageCommand(file1, false)
 	runCommitCommand("Commit file1")
 
-	runAddCommand(file2, false)
+	runStageCommand(file2, false)
 	runCommitCommand("Commit file2")
 
 	hashes := CollectReferencedHashes()
@@ -203,7 +203,7 @@ func Test_CleanOrphanedShards_NoOrphans(t *testing.T) {
 	// Create and commit a file
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("test content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Test commit")
 
 	hashes := CollectReferencedHashes()
@@ -229,7 +229,7 @@ func Test_CleanOrphanedShards_WithOrphans(t *testing.T) {
 	// Create and commit a file
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("test content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Test commit")
 
 	// Create orphan shard directories manually
@@ -269,7 +269,7 @@ func Test_CleanOrphanedShards_DryRun(t *testing.T) {
 	// Create and commit a file
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("test content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Test commit")
 
 	// Create orphan shard directory
@@ -307,10 +307,10 @@ func Test_CleanOrphanedBlobs_NoOrphans(t *testing.T) {
 	os.WriteFile(file1, []byte("content1"), 0644)
 	os.WriteFile(file2, []byte("content2"), 0644)
 
-	runAddCommand(file1, false)
+	runStageCommand(file1, false)
 	runCommitCommand("Commit 1")
 
-	runAddCommand(file2, false)
+	runStageCommand(file2, false)
 	runCommitCommand("Commit 2")
 
 	freedBytes, deletedBlobs, failedBlobs := CleanOrphanedBlobs(false, false)
@@ -339,7 +339,7 @@ func Test_CleanOrphanedBlobs_WithOrphans(t *testing.T) {
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("test content"), 0644)
 	committedHash, _ := HashFile(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Test commit")
 
 	// Create orphan blob manually using WriteBlob on a temp file
@@ -400,7 +400,7 @@ func Test_CleanOrphanedBlobs_DryRun(t *testing.T) {
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("test content"), 0644)
 	committedHash, _ := HashFile(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Test commit")
 
 	// Create orphan blob in the SAME shard as the committed file
@@ -452,7 +452,7 @@ func Test_CleanOrphanedBlobs_RemovesEmptyShards(t *testing.T) {
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("test content"), 0644)
 	committedHash, _ := HashFile(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Test commit")
 
 	// Create orphan blob in a DIFFERENT shard than the committed file
@@ -510,7 +510,7 @@ func Test_CleanOrphanedBlobs_MultipleOrphans(t *testing.T) {
 	file := namespace + "test.txt"
 	os.WriteFile(file, []byte("test content"), 0644)
 	committedHash, _ := HashFile(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Test commit")
 
 	// Create multiple orphan blobs in the SAME shard as the committed file
@@ -573,7 +573,7 @@ func Test_CleanOrphanedBlobs_PreservesReferencedBlobs(t *testing.T) {
 		os.WriteFile(f, content, 0644)
 		hash, _ := HashFile(f)
 		hashes = append(hashes, hash)
-		runAddCommand(f, false)
+		runStageCommand(f, false)
 		runCommitCommand("Commit " + string(rune('1'+i)))
 	}
 
@@ -616,7 +616,7 @@ func Test_CleanOrphanedBlobs_PreservesStagedBlobs(t *testing.T) {
 	stagedFile := namespace + "staged.txt"
 	os.WriteFile(stagedFile, []byte("staged content"), 0644)
 	stagedHash, _ := HashFile(stagedFile)
-	runAddCommand(stagedFile, false)
+	runStageCommand(stagedFile, false)
 
 	// Create an orphan blob in the SAME shard as the staged file
 	orphanFile := namespace + "orphan.txt"

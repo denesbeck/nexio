@@ -5,22 +5,22 @@ import (
 )
 
 func init() {
-	rootCmd.AddCommand(removeCmd)
+	rootCmd.AddCommand(unstageCmd)
 }
 
-var removeCmd = &cobra.Command{
-	Use:     "remove",
-	Short:   "Remove the selected files from the staging area",
-	Example: "nexio remove <path/to/your/file>",
+var unstageCmd = &cobra.Command{
+	Use:     "unstage",
+	Short:   "Unstage the selected files from the staging area",
+	Example: "nexio unstage <path/to/your/file>",
 	Args:    cobra.ExactArgs(1),
 	Run: func(_ *cobra.Command, args []string) {
 		for _, arg := range args {
-			runRemoveCommand(arg)
+			runUnstageCommand(arg)
 		}
 	},
 }
 
-func runRemoveCommand(filePath string) {
+func runUnstageCommand(filePath string) {
 	initialized := IsInitialized()
 	if !initialized {
 		Fail("%s", COMMON_RETURN_CODES[001])
@@ -36,8 +36,8 @@ func runRemoveCommand(filePath string) {
 			Fail("%s", COMMON_RETURN_CODES[005])
 			return
 		}
-		Success("%s", REMOVE_RETURN_CODES[801])
+		Success("%s", UNSTAGE_RETURN_CODES[801])
 	} else {
-		Info("%s", REMOVE_RETURN_CODES[802])
+		Info("%s", UNSTAGE_RETURN_CODES[802])
 	}
 }

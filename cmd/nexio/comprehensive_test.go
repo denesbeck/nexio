@@ -38,7 +38,7 @@ func Test_ComprehensiveCoverage(t *testing.T) {
 	}
 
 	// Test adding, committing
-	runAddCommand(testFile, false)
+	runStageCommand(testFile, false)
 	runCommitCommand("Test commit for coverage")
 
 	// Test commit functions

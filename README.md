@@ -75,8 +75,8 @@ export PATH="$PATH:/path/to/nexio"
 # Check file status
 ./nexio status
 
-# Add files to staging area
-./nexio add file1.txt file2.txt
+# Stage files for commit
+./nexio stage file1.txt file2.txt
 
 # Commit changes
 ./nexio commit -m "Initial commit"
@@ -106,8 +106,8 @@ export PATH="$PATH:/path/to/nexio"
 | Command    | Description                                                       |
 |------------|-------------------------------------------------------------------|
 | `init`     | Initialize the Nexio version control system                    |
-| `add`      | Add files to the staging area                                     |
-| `remove`   | Remove files from the staging area                                |
+| `stage`    | Stage files for commit                                            |
+| `unstage`  | Unstage files from the staging area                               |
 | `commit`   | Commit staged changes with a message                              |
 | `status`   | Display staged, tracked, and untracked files                      |
 | `history`  | List all commits for the current branch                           |

@@ -19,7 +19,7 @@ func Test_SwitchBranch_BlocksWithStagedFiles(t *testing.T) {
 	// Create and stage a file
 	file := namespace + "file.txt"
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 
 	// Try to switch to branch-b with staged changes
 	statusCode := runSwitchCommand("branch-b")
@@ -49,7 +49,7 @@ func Test_SwitchBranch_BlocksWithModifiedFiles(t *testing.T) {
 	// Create file and commit it
 	file := namespace + "file.txt"
 	os.WriteFile(file, []byte("original content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Initial commit")
 
 	// Create new branch (this switches to it)
@@ -84,7 +84,7 @@ func Test_SwitchBranch_BlocksWithDeletedFiles(t *testing.T) {
 	// Create file and commit it
 	file := namespace + "file.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Initial commit")
 
 	// Create new branch (this switches to it)
@@ -113,7 +113,7 @@ func Test_SwitchBranch_AllowsWithNoChanges(t *testing.T) {
 	// Create file and commit it
 	file := namespace + "file.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Initial commit")
 
 	// Create new branch from current commit (this switches to it)
@@ -145,7 +145,7 @@ func Test_SwitchBranch_AllowsAfterCommitting(t *testing.T) {
 	// Create file and commit it
 	file := namespace + "file.txt"
 	os.WriteFile(file, []byte("content"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Initial commit")
 
 	// Create new branch (this switches to it)
@@ -156,7 +156,7 @@ func Test_SwitchBranch_AllowsAfterCommitting(t *testing.T) {
 
 	// Modify and stage file
 	os.WriteFile(file, []byte("modified"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 
 	// First attempt should fail
 	statusCode := runSwitchCommand("branch-b")
@@ -194,7 +194,7 @@ func Test_HasUncommittedChanges_DetectsStagedFiles(t *testing.T) {
 	// Stage a file
 	file := namespace + "file.txt"
 	os.Create(file)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 
 	// Should detect staged file
 	if !HasUncommittedChanges() {
@@ -211,7 +211,7 @@ func Test_HasUncommittedChanges_DetectsModifiedFiles(t *testing.T) {
 	// Create and commit file
 	file := namespace + "file.txt"
 	os.WriteFile(file, []byte("original"), 0644)
-	runAddCommand(file, false)
+	runStageCommand(file, false)
 	runCommitCommand("Initial commit")
 
 	// No uncommitted changes after commit

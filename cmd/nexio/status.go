@@ -67,7 +67,7 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 		Info("Untracked files (%d)", len(untracked))
 		TreeList(untracked, true)
 		BreakLine()
-		Text("Use "+Code("nexio add <file>...")+" to track", "")
+		Text("Use "+Code("nexio stage <file>...")+" to track", "")
 	} else {
 		Debug("%s", STATUS_RETURN_CODES[504])
 	}

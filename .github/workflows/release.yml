@@ -1,0 +1,142 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: linux
+            goarch: amd64
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          BINARY_NAME=nexio-${{ matrix.goos }}-${{ matrix.goarch }}
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o "${BINARY_NAME}" ./cmd/nexio
+
+      - name: Create tarball
+        run: |
+          BINARY_NAME=nexio-${{ matrix.goos }}-${{ matrix.goarch }}
+          ARCHIVE_NAME="${BINARY_NAME}.tar.gz"
+          tar -czf "${ARCHIVE_NAME}" "${BINARY_NAME}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexio-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: nexio-${{ matrix.goos }}-${{ matrix.goarch }}.tar.gz
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: "*.tar.gz"
+
+  update-homebrew:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap repository
+        uses: actions/checkout@v5
+        with:
+          repository: denesbeck/homebrew-nexio
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update formula
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          # Strip the leading "v" from the tag
+          CLEAN_VERSION="${VERSION#v}"
+
+          BASE_URL="https://github.com/denesbeck/nexio/releases/download/${VERSION}"
+
+          # Download tarballs and compute SHA256
+          curl -sL "${BASE_URL}/nexio-darwin-amd64.tar.gz" -o darwin-amd64.tar.gz
+          curl -sL "${BASE_URL}/nexio-darwin-arm64.tar.gz" -o darwin-arm64.tar.gz
+          curl -sL "${BASE_URL}/nexio-linux-amd64.tar.gz" -o linux-amd64.tar.gz
+
+          SHA_DARWIN_AMD64=$(sha256sum darwin-amd64.tar.gz | awk '{print $1}')
+          SHA_DARWIN_ARM64=$(sha256sum darwin-arm64.tar.gz | awk '{print $1}')
+          SHA_LINUX_AMD64=$(sha256sum linux-amd64.tar.gz | awk '{print $1}')
+
+          # Generate formula
+          mkdir -p Formula
+          cat > Formula/nexio.rb <<EOF
+          class Nexio < Formula
+            desc "Nexio CLI tool"
+            homepage "https://github.com/denesbeck/nexio"
+            version "${CLEAN_VERSION}"
+            license "MIT"
+
+            on_macos do
+              if Hardware::CPU.arm?
+                url "${BASE_URL}/nexio-darwin-arm64.tar.gz"
+                sha256 "${SHA_DARWIN_ARM64}"
+              else
+                url "${BASE_URL}/nexio-darwin-amd64.tar.gz"
+                sha256 "${SHA_DARWIN_AMD64}"
+              end
+            end
+
+            on_linux do
+              url "${BASE_URL}/nexio-linux-amd64.tar.gz"
+              sha256 "${SHA_LINUX_AMD64}"
+            end
+
+            def install
+              bin.install Dir["nexio-*"].first => "nexio"
+            end
+
+            test do
+              assert_match version.to_s, shell_output("\#{bin}/nexio --version")
+            end
+          end
+          EOF
+
+          # Fix indentation — remove the leading spaces from YAML block scalar
+          sed -i 's/^          //' Formula/nexio.rb
+
+      - name: Commit and push formula
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/nexio.rb
+          git commit -m "Update nexio to ${{ github.ref_name }}"
+          git push

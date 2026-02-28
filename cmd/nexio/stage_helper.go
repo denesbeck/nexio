@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func DisplayAddResults(results []AddResult) {
+func DisplayStageResults(results []StageResult) {
 	if len(results) == 0 {
 		Debug("Results length is 0.")
 		Info("No files to stage.")
@@ -65,14 +65,14 @@ func DisplayAddResults(results []AddResult) {
 
 	if len(alreadyStaged) > 0 {
 		BreakLine()
-		Info(" Already staged %s", FormatFileCount(len(alreadyStaged)))
+		Info(" Already staged %s", FormatFileCount(len(alreadyStaged)))
 		list := GenerateLeveledList(alreadyStaged)
 		Tree(list, ".", true)
 	}
 
 	if len(failed) > 0 {
 		BreakLine()
-		Fail(" Failed (%s)", FormatFileCount(len(failed)))
+		Fail(" Failed (%s)", FormatFileCount(len(failed)))
 		list := GenerateLeveledList(failed)
 		Tree(list, ".", true)
 	}

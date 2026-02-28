@@ -11,7 +11,7 @@ func Test_Workdir(t *testing.T) {
 	runInitCommand()
 	bFile := namespace + "b.txt"
 	os.Create(bFile)
-	runAddCommand(bFile, false)
+	runStageCommand(bFile, false)
 	runCommitCommand("b")
 	statusCode, content := runWorkdirCommand()
 	if statusCode != 301 {
@@ -28,8 +28,8 @@ func Test_Workdir(t *testing.T) {
 	cFile := namespace + "c.txt"
 	os.Create(aFile)
 	os.Create(cFile)
-	runAddCommand(aFile, false)
-	runAddCommand(cFile, false)
+	runStageCommand(aFile, false)
+	runStageCommand(cFile, false)
 	runCommitCommand("ac")
 	statusCode, content = runWorkdirCommand()
 	if statusCode != 301 {
