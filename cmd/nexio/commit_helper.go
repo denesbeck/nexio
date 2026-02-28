@@ -1,10 +1,10 @@
 package main
 
-import (
-	"encoding/json"
-	"errors"
-	"os"
-	"slices"
+import "errors"
+
+var (
+	errCommitNotFound = errors.New("Commit does not exist")
+	errBranchExists   = errors.New("Branch already exists")
 )
 
 type Commit struct {
@@ -24,275 +24,52 @@ type CommitMetadata struct {
 }
 
 func GetLastCommit() Commit {
-	Debug("Getting last commit")
-	currentBranchName := GetCurrentBranchName()
-	commit := GetLastCommitByBranch(currentBranchName)
-	Debug("Last commit: %s", commit)
-	return commit
+	return DBGetLastCommit()
 }
 
 func GetLastCommitByBranch(branch string) Commit {
-	Debug("Getting last commit for branch: %s", branch)
-	commits, err := os.ReadFile(GetDir("branches") + branch + "/commits.json")
-	if err != nil {
-		Debug("Failed to read commits file")
-		MustSucceed(err, "operation failed")
-	}
-	var content []Commit
-	if err = json.Unmarshal(commits, &content); err != nil {
-		Debug("Failed to unmarshal commits")
-		MustSucceed(err, "operation failed")
-	}
-	if len(content) == 0 {
-		Debug("No commits found for branch")
-		return Commit{}
-	}
-	// The last commit is the one with an empty Next field
-	for _, commit := range content {
-		if commit.Next == "" {
-			Debug("Last commit for branch: %s", commit.Id)
-			return commit
-		}
-	}
-	// Fallback: if no commit has empty Next (shouldn't happen), return the last in array
-	Debug("Warning: No commit found with empty Next, using last in array")
-	return content[len(content)-1]
+	return DBGetLastCommitByBranch(branch)
 }
 
 func CountCommits() int {
-	Debug("Counting all commits")
-	currentBranchName := GetCurrentBranchName()
-	commits, err := os.ReadFile(GetDir("branches") + currentBranchName + "/commits.json")
-	if err != nil {
-		Debug("Failed to read commits file")
-		MustSucceed(err, "operation failed")
-	}
-	var content []Commit
-	if err = json.Unmarshal(commits, &content); err != nil {
-		Debug("Failed to unmarshal commits")
-		MustSucceed(err, "operation failed")
-	}
-	Debug("Counted %d commits", len(content))
-
-	return len(content)
+	return DBCountCommits()
 }
 
 func GetCommits() *[]Commit {
-	Debug("Getting all commits")
-	currentBranchName := GetCurrentBranchName()
-	commits, err := os.ReadFile(GetDir("branches") + currentBranchName + "/commits.json")
-	if err != nil {
-		Debug("Failed to read commits file")
-		MustSucceed(err, "operation failed")
-	}
-	var content []Commit
-	if err = json.Unmarshal(commits, &content); err != nil {
-		Debug("Failed to unmarshal commits")
-		MustSucceed(err, "operation failed")
-	}
-	Debug("Retrieved %d commits", len(content))
-
-	// Sort commits by following the linked list
-	sortedCommits := sortCommitsByLinkedList(content)
-	return &sortedCommits
-}
-
-// sortCommitsByLinkedList sorts commits by traversing the linked list from first to last
-// The first commit has no predecessor (no other commit points to it)
-// Each commit points to the next one via the Next field
-func sortCommitsByLinkedList(commits []Commit) []Commit {
-	if len(commits) == 0 {
-		return commits
-	}
-
-	Debug("Sorting %d commits by linked list", len(commits))
-
-	// Build a map for O(1) lookup: commitId -> Commit
-	commitMap := make(map[string]Commit)
-	// Track which commits are pointed to by another commit
-	hasParent := make(map[string]bool)
-
-	for _, commit := range commits {
-		commitMap[commit.Id] = commit
-		if commit.Next != "" {
-			hasParent[commit.Next] = true
-		}
-	}
-
-	// Find the first commit (the one that has no parent pointing to it)
-	var firstCommit *Commit
-	for _, commit := range commits {
-		if !hasParent[commit.Id] {
-			firstCommit = &commit
-			Debug("Found first commit: %s", commit.Id)
-			break
-		}
-	}
-
-	if firstCommit == nil {
-		Debug("Warning: Could not find first commit, returning unsorted")
-		return commits
-	}
-
-	// Traverse the linked list from first to last
-	sorted := make([]Commit, 0, len(commits))
-	current := firstCommit
-	visited := make(map[string]bool) // Prevent infinite loops
-
-	for current != nil && !visited[current.Id] {
-		sorted = append(sorted, *current)
-		visited[current.Id] = true
-
-		// Move to next commit
-		if current.Next == "" {
-			break
-		}
-
-		next, exists := commitMap[current.Next]
-		if !exists {
-			Debug("Warning: Broken linked list at commit %s -> %s", current.Id, current.Next)
-			break
-		}
-		current = &next
-	}
-
-	Debug("Sorted %d commits in chronological order", len(sorted))
-	return sorted
+	commits := DBGetCommits()
+	return &commits
 }
 
 func GetFileListContent(commitId string) (result *[]FileListEntry) {
-	Debug("Getting file list for commit: %s", commitId)
-	fileList, err := os.ReadFile(GetDir("commits") + commitId + "/fileList.json")
-	if err != nil {
-		Debug("Failed to read file list")
-		MustSucceed(err, "operation failed")
-	}
-	var content []FileListEntry
-	if len(fileList) > 0 {
-		if err = json.Unmarshal(fileList, &content); err != nil {
-			Debug("Failed to unmarshal file list")
-			MustSucceed(err, "operation failed")
-		}
-	} else {
-		content = []FileListEntry{}
-		Debug("Empty file list")
-		return &content
-	}
-	Debug("Retrieved %d files from commit", len(content))
-	return &content
+	files := DBGetFileListForCommit(commitId)
+	return &files
 }
 
 func ProcessFileList(latestCommitId string, newCommitId string) {
-	Debug("Processing file list: latest=%s, new=%s", latestCommitId, newCommitId)
-	var fileList *[]FileListEntry
-	emptyFileList := []FileListEntry{}
-	if latestCommitId == "" {
-		Debug("No previous commit, starting with empty file list")
-		fileList = &emptyFileList
-	} else {
-		fileListContent := GetFileListContent(latestCommitId)
-		if fileListContent != nil {
-			fileList = fileListContent
-			Debug("Using file list from previous commit")
-		} else {
-			fileList = &emptyFileList
-			Debug("No file list found in previous commit")
-		}
-	}
-
-	stagingLogs := GetSyncedStagingLogsContent()
-
-	for _, logEntry := range *stagingLogs {
-		Debug("Processing staging log entry: op=%s, path=%s", logEntry.Op, logEntry.Path)
-		switch logEntry.Op {
-		case "REM":
-			if len(*fileList) == 0 {
-				Debug("Skipping REM operation - no files in list")
-				continue
-			}
-			for i, entry := range *fileList {
-				if entry.Path == logEntry.Path {
-					Debug("Removing file from list: %s", entry.Path)
-					*fileList = slices.Delete((*fileList), i, i+1)
-					break
-				}
-			}
-		case "ADD":
-			Debug("Adding new file to list: %s", logEntry.Path)
-			info, err := os.Stat(logEntry.Path)
-			if err != nil {
-				Debug("Failed to get file info")
-				MustSucceed(err, "operation failed")
-			}
-			mode := uint32(info.Mode().Perm())
-			*fileList = append(*fileList, FileListEntry{
-				Id:       logEntry.Id,
-				CommitId: newCommitId,
-				Path:     logEntry.Path,
-				BlobHash: logEntry.BlobHash,
-				Mode:     mode,
-			})
-		case "MOD":
-			if len(*fileList) == 0 {
-				Debug("Skipping MOD operation - no files in list")
-				continue
-			}
-			for i, entry := range *fileList {
-				if logEntry.Path == entry.Path {
-					Debug("Updating file in list: %s", entry.Path)
-					(*fileList)[i].Id = logEntry.Id
-					(*fileList)[i].CommitId = newCommitId
-					(*fileList)[i].BlobHash = logEntry.BlobHash
-				}
-			}
-		}
-	}
-	WriteJson(GetDir("commits")+newCommitId+"/fileList.json", fileList)
-	Debug("File list processed successfully")
+	DBProcessFileList(latestCommitId, newCommitId)
 }
 
 func WriteCommitMetadata(commitId string, message string) {
-	Debug("Writing commit metadata: id=%s, message=%s", commitId, message)
-	config := GetConfig()
-	author := Author{
-		Name:  config.Name,
-		Email: config.Email,
-	}
-	WriteJson(GetDir("commits")+commitId+"/metadata.json", CommitMetadata{Author: author, Message: message})
-	Debug("Commit metadata written successfully")
+	// In SQLite mode, metadata is stored as part of the commit record.
+	// This is called from runCoreCommitCommand, but the actual metadata
+	// (author, message) is written in DBRegisterCommit.
+	// This function is now a no-op since we combine it with RegisterCommitForBranch.
+	Debug("WriteCommitMetadata called for commit %s (handled by DBRegisterCommit)", commitId)
 }
 
 func RegisterCommitForBranch(commitId string) {
-	Debug("Registering commit for branch: %s", commitId)
-	currentBranchName := GetCurrentBranchName()
+	// This is now handled by DBRegisterCommit which combines
+	// commit creation + branch head update + metadata storage
+	Debug("RegisterCommitForBranch called for commit %s", commitId)
+}
 
-	err := WithLock(GetDir("branches")+currentBranchName+"/commits", DefaultLockTimeout, func() error {
-		commits, err := os.ReadFile(GetDir("branches") + currentBranchName + "/commits.json")
-		if err != nil {
-			Debug("Failed to read commits file")
-			return err
-		}
-		var content []Commit
-		if err = json.Unmarshal(commits, &content); err != nil {
-			Debug("Failed to unmarshal commits")
-			return err
-		}
-		content = append(content, Commit{Id: commitId, Timestamp: GetTimestamp(), Next: ""})
-		if len(content) > 1 {
-			content[len(content)-2].Next = commitId
-		}
-		WriteJson(GetDir("branches")+currentBranchName+"/commits.json", content)
-		Debug("Commit registered successfully")
-		return nil
-	})
-
-	if err != nil {
-		MustSucceed(err, "operation failed")
-	}
+// RegisterCommit creates a commit with metadata and registers it for the current branch
+func RegisterCommit(commitId string, message string) {
+	branch := GetCurrentBranchName()
+	DBRegisterCommit(commitId, message, branch)
 }
 
 // HasUncommittedChanges checks if there are any uncommitted changes in the working directory
-// Returns true if there are staged files, modified files, or deleted files
 func HasUncommittedChanges() bool {
 	Debug("Checking for uncommitted changes")
 
@@ -314,26 +91,31 @@ func HasUncommittedChanges() bool {
 	return false
 }
 
+// CopyCommitsToBranch creates a new branch with head_commit pointing to the given commit.
+// Since commits are shared across branches (no branch column), we just need to create
+// the branch and set its head_commit.
 func CopyCommitsToBranch(commitId string, targetBranch string) error {
-	Debug("Copying commits to branch: commit=%s, branch=%s", commitId, targetBranch)
-	commits := GetCommits()
-	commitIds := []string{}
-	for _, commit := range *commits {
-		commitIds = append(commitIds, commit.Id)
-	}
-	if !slices.Contains(commitIds, commitId) {
+	Debug("Creating branch %s from commit %s", targetBranch, commitId)
+
+	// Verify the commit exists
+	var exists int
+	err := db.QueryRow("SELECT COUNT(*) FROM commits WHERE id = ?", commitId).Scan(&exists)
+	if err != nil || exists == 0 {
 		Debug("Commit does not exist: %s", commitId)
-		return errors.New("Commit does not exist")
+		return errCommitNotFound
 	}
 
-	if err := os.Mkdir(GetDir("branches")+targetBranch, 0755); err != nil {
+	// Check if branch already exists
+	if DBBranchExists(targetBranch) {
 		Debug("Branch already exists: %s", targetBranch)
-		return errors.New("Branch already exists")
+		return errBranchExists
 	}
 
-	index := FindIndex(commitIds, commitId)
-	*commits = (*commits)[:(index + 1)]
-	WriteJson(GetDir("branches")+targetBranch+"/commits.json", *commits)
-	Debug("Commits copied successfully")
+	// Create the new branch pointing to the given commit
+	if err := DBCreateBranch(targetBranch, false, false); err != nil {
+		return err
+	}
+	DBUpdateBranchHead(targetBranch, commitId)
+
 	return nil
 }

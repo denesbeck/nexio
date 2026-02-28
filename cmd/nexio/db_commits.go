@@ -1,0 +1,230 @@
+package main
+
+import (
+	"database/sql"
+)
+
+// DBGetLastCommit returns the last commit on the current branch
+func DBGetLastCommit() Commit {
+	Debug("Getting last commit")
+	branch := DBGetCurrentBranchName()
+	return DBGetLastCommitByBranch(branch)
+}
+
+// DBGetLastCommitByBranch returns the last commit on a specific branch
+func DBGetLastCommitByBranch(branch string) Commit {
+	Debug("Getting last commit for branch: %s", branch)
+
+	// Get head_commit from branch record
+	var headCommit sql.NullString
+	err := db.QueryRow("SELECT head_commit FROM branches WHERE name = ?", branch).Scan(&headCommit)
+	if err != nil {
+		Debug("Failed to get branch head: %v", err)
+		MustSucceed(err, "operation failed")
+	}
+
+	if !headCommit.Valid || headCommit.String == "" {
+		Debug("No commits found for branch")
+		return Commit{}
+	}
+
+	var c Commit
+	var parentId sql.NullString
+	err = db.QueryRow(
+		"SELECT id, timestamp, COALESCE(parent_id, '') FROM commits WHERE id = ?",
+		headCommit.String,
+	).Scan(&c.Id, &c.Timestamp, &parentId)
+	if err != nil {
+		Debug("Failed to get last commit: %v", err)
+		MustSucceed(err, "operation failed")
+	}
+
+	c.Next = ""
+	Debug("Last commit for branch: %s", c.Id)
+	return c
+}
+
+// DBCountCommits returns the total number of commits on the current branch
+// by walking the parent chain from head_commit
+func DBCountCommits() int {
+	Debug("Counting all commits")
+	branch := DBGetCurrentBranchName()
+	headCommitId := DBGetHeadCommitForBranch(branch)
+	if headCommitId == "" {
+		return 0
+	}
+
+	count := 0
+	currentId := headCommitId
+	for currentId != "" {
+		count++
+		var parentId sql.NullString
+		err := db.QueryRow("SELECT parent_id FROM commits WHERE id = ?", currentId).Scan(&parentId)
+		if err != nil {
+			Debug("Failed to walk parent chain: %v", err)
+			break
+		}
+		if parentId.Valid {
+			currentId = parentId.String
+		} else {
+			currentId = ""
+		}
+	}
+	Debug("Counted %d commits", count)
+	return count
+}
+
+// DBGetCommits returns all commits on the current branch, sorted chronologically
+func DBGetCommits() []Commit {
+	Debug("Getting all commits")
+	branch := DBGetCurrentBranchName()
+	return DBGetCommitsByBranch(branch)
+}
+
+// DBGetCommitsByBranch returns all commits on a specific branch by walking
+// the parent chain from head_commit. Returns commits in chronological order
+// (oldest first).
+func DBGetCommitsByBranch(branch string) []Commit {
+	Debug("Getting commits for branch: %s", branch)
+
+	headCommitId := DBGetHeadCommitForBranch(branch)
+	if headCommitId == "" {
+		Debug("No head commit for branch %s", branch)
+		return []Commit{}
+	}
+
+	// Walk the parent chain from head to root, collecting commits
+	var commits []Commit
+	currentId := headCommitId
+	for currentId != "" {
+		var c Commit
+		var parentId sql.NullString
+		err := db.QueryRow(
+			"SELECT id, timestamp, COALESCE(parent_id, '') FROM commits WHERE id = ?",
+			currentId,
+		).Scan(&c.Id, &c.Timestamp, &parentId)
+		if err != nil {
+			Debug("Failed to get commit %s: %v", currentId, err)
+			break
+		}
+		c.Next = ""
+		commits = append(commits, c)
+
+		if parentId.Valid && parentId.String != "" {
+			currentId = parentId.String
+		} else {
+			currentId = ""
+		}
+	}
+
+	// Reverse to get chronological order (oldest first)
+	for i, j := 0, len(commits)-1; i < j; i, j = i+1, j-1 {
+		commits[i], commits[j] = commits[j], commits[i]
+	}
+
+	// Set the Next field for compatibility: each commit points to the next one
+	for i := 0; i < len(commits)-1; i++ {
+		commits[i].Next = commits[i+1].Id
+	}
+
+	Debug("Retrieved %d commits", len(commits))
+	return commits
+}
+
+// DBRegisterCommit creates a new commit and updates the branch head
+func DBRegisterCommit(commitId, message, branch string) {
+	Debug("Registering commit: id=%s, branch=%s", commitId, branch)
+
+	config := GetConfig()
+	timestamp := GetTimestamp()
+
+	// Get current head as parent
+	var parentId sql.NullString
+	err := db.QueryRow("SELECT head_commit FROM branches WHERE name = ?", branch).Scan(&parentId)
+	if err != nil {
+		Debug("Failed to get branch head: %v", err)
+		MustSucceed(err, "operation failed")
+	}
+
+	var parentIdValue interface{}
+	if parentId.Valid && parentId.String != "" {
+		parentIdValue = parentId.String
+	} else {
+		parentIdValue = nil
+	}
+
+	_, err = db.Exec(
+		`INSERT INTO commits (id, parent_id, timestamp, message, author_name, author_email)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		commitId, parentIdValue, timestamp, message, config.Name, config.Email,
+	)
+	if err != nil {
+		Debug("Failed to insert commit: %v", err)
+		MustSucceed(err, "operation failed")
+	}
+
+	// Update branch head
+	DBUpdateBranchHead(branch, commitId)
+	Debug("Commit registered successfully")
+}
+
+// DBGetCommitMetadata returns the metadata for a specific commit
+func DBGetCommitMetadata(commitId string) CommitMetadata {
+	Debug("Getting commit metadata: %s", commitId)
+	var m CommitMetadata
+	err := db.QueryRow(
+		"SELECT message, author_name, author_email FROM commits WHERE id = ?",
+		commitId,
+	).Scan(&m.Message, &m.Author.Name, &m.Author.Email)
+	if err != nil {
+		Debug("Failed to get commit metadata: %v", err)
+		MustSucceed(err, "operation failed")
+	}
+	Debug("Commit metadata retrieved successfully")
+	return m
+}
+
+// DBGetCommitLogs returns the log entries for a specific commit
+func DBGetCommitLogs(commitId string) []LogFileEntry {
+	Debug("Getting commit logs: %s", commitId)
+	rows, err := db.Query(
+		"SELECT id, op, path, COALESCE(blob_hash, '') FROM commit_logs WHERE commit_id = ?",
+		commitId,
+	)
+	if err != nil {
+		Debug("Failed to get commit logs: %v", err)
+		MustSucceed(err, "operation failed")
+	}
+	defer rows.Close()
+
+	var logs []LogFileEntry
+	for rows.Next() {
+		var e LogFileEntry
+		if err := rows.Scan(&e.Id, &e.Op, &e.Path, &e.BlobHash); err != nil {
+			Debug("Failed to scan commit log: %v", err)
+			MustSucceed(err, "operation failed")
+		}
+		logs = append(logs, e)
+	}
+	if logs == nil {
+		logs = []LogFileEntry{}
+	}
+	Debug("Retrieved %d commit log entries", len(logs))
+	return logs
+}
+
+// DBSaveCommitLogs saves staging log entries as commit logs
+func DBSaveCommitLogs(commitId string, logs []LogFileEntry) {
+	Debug("Saving commit logs: commit=%s, entries=%d", commitId, len(logs))
+	for _, entry := range logs {
+		_, err := db.Exec(
+			"INSERT INTO commit_logs (id, commit_id, op, path, blob_hash) VALUES (?, ?, ?, ?, ?)",
+			entry.Id, commitId, entry.Op, entry.Path, entry.BlobHash,
+		)
+		if err != nil {
+			Debug("Failed to save commit log entry: %v", err)
+			MustSucceed(err, "operation failed")
+		}
+	}
+	Debug("Commit logs saved successfully")
+}

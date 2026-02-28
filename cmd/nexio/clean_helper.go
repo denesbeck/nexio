@@ -1,60 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 )
 
 func CollectReferencedHashes() map[string]struct{} {
-	files, err := filepath.Glob(filepath.Join(GetDir("commits"), "*", "fileList.json"))
-	if err != nil {
-		Debug("Failed to retrieve file lists: %s", err)
-		MustSucceed(err, "operation failed")
-	}
-
-	duplicateHashes := 0
-	hashMap := make(map[string]struct{})
-
-	Debug("Reading file lists...")
-	for _, file := range files {
-		content, err := os.ReadFile(file)
-		if err != nil {
-			Debug("Failed to read file list: %s", err)
-			MustSucceed(err, "operation failed")
-		}
-
-		var fileList []FileListEntry
-		if err = json.Unmarshal(content, &fileList); err != nil {
-			Debug("Failed to unmarshal file list: %s", err)
-			MustSucceed(err, "operation failed")
-		}
-		for _, entry := range fileList {
-			if _, exists := hashMap[entry.BlobHash]; exists {
-				duplicateHashes++
-				continue
-			}
-
-			hashMap[entry.BlobHash] = struct{}{}
-		}
-	}
-
-	Debug("Reading staging logs...")
-	content := GetStagingLogsContent()
-
-	for _, entry := range *content {
-		if _, exists := hashMap[entry.BlobHash]; exists {
-			duplicateHashes++
-			continue
-		}
-
-		hashMap[entry.BlobHash] = struct{}{}
-	}
-
-	Debug("Found %d duplicate referenced hashes", duplicateHashes)
-	Debug("Found %d unique referenced hashes", len(hashMap))
-
-	return hashMap
+	return DBCollectReferencedHashes()
 }
 
 func CleanOrphanedShards(hashes map[string]struct{}, dryRun bool, verbose bool) (int, int) {

@@ -37,4 +37,18 @@ func CreateDirs() {
 			f.Close()
 		}
 	}
+
+	// Initialize SQLite database
+	Debug("Initializing SQLite database")
+	if err := InitDB(); err != nil {
+		Debug("Failed to initialize database")
+		MustSucceed(err, "operation failed")
+	}
+
+	// Create initial branch
+	Debug("Creating initial branch: %s", InitBranch)
+	if err := DBCreateBranch(InitBranch, true, true); err != nil {
+		Debug("Failed to create initial branch")
+		MustSucceed(err, "operation failed")
+	}
 }

@@ -193,8 +193,8 @@ func runBranchCommand() {
 		return
 	}
 
-	branches, err := os.ReadDir(GetDir("branches"))
-	if err != nil {
+	branches := ListBranches()
+	if len(branches) == 0 {
 		Debug("%s", BRANCH_RETURN_CODES[217])
 		Fail("%s", BRANCH_RETURN_CODES[217])
 		return
@@ -205,25 +205,22 @@ func runBranchCommand() {
 	Debug("Current branch: %s, Default branch: %s", currentBranchName, defaultBranchName)
 
 	branchList := []string{}
-	for _, branch := range branches {
-		if branch.IsDir() {
-			branchName := branch.Name()
-			formattedBranchName := branchName
-			if branchName == defaultBranchName {
-				formattedBranchName = formattedBranchName + " 󰨐"
-			}
-			if branchName == currentBranchName {
-				formattedBranchName = pterm.LightBlue(formattedBranchName)
-			}
-			branchList = append(branchList, formattedBranchName)
+	for _, branchName := range branches {
+		formattedBranchName := branchName
+		if branchName == defaultBranchName {
+			formattedBranchName = formattedBranchName + " 󰨐"
 		}
+		if branchName == currentBranchName {
+			formattedBranchName = pterm.LightBlue(formattedBranchName)
+		}
+		branchList = append(branchList, formattedBranchName)
 	}
 
 	BreakLine()
 	Info("Branches:")
 	TreeList(branchList, true)
 	BreakLine()
-	Text("legend: 󰨐 = default, "+pterm.LightBlue("blue")+" = current", "")
+	Text("legend: 󰨐 = default, "+pterm.LightBlue("blue")+" = current", "")
 	BreakLine()
 	Debug("Branch command completed successfully")
 }
@@ -294,13 +291,26 @@ func runNewCommand(branchName string, fromCommit string, fromBranch string) int 
 		}
 	} else {
 		Debug("Creating branch from branch: %s", srcBranch)
-		if err := os.Mkdir(GetDir("branches")+branchName, 0755); err != nil {
+		// Check if branch already exists
+		if DBBranchExists(branchName) {
 			Debug("Branch already exists: %s", branchName)
 			Fail("%s", BRANCH_RETURN_CODES[205])
 			return 205
 		}
 
-		CopyFile(GetDir("branches")+srcBranch+"/commits.json", GetDir("branches")+branchName+"/commits.json")
+		// Create new branch
+		if err := DBCreateBranch(branchName, false, false); err != nil {
+			Debug("Failed to create branch: %v", err)
+			Fail("%s", BRANCH_RETURN_CODES[205])
+			return 205
+		}
+
+		// Point the new branch's head to the same commit as the source branch.
+		// Commits are shared across branches — no copying needed.
+		srcHead := DBGetHeadCommitForBranch(srcBranch)
+		if srcHead != "" {
+			DBUpdateBranchHead(branchName, srcHead)
+		}
 	}
 	Debug("Branch created successfully: %s", branchName)
 	Success("%s", BRANCH_RETURN_CODES[206])
@@ -334,7 +344,7 @@ func runDropCommand(branchName string) int {
 		return 209
 	}
 
-	if err := os.RemoveAll(GetDir("branches") + branchName); err != nil {
+	if err := DBDropBranch(branchName); err != nil {
 		Debug("Failed to delete branch: %s", branchName)
 		Fail("%s", BRANCH_RETURN_CODES[207])
 		return 207
@@ -383,10 +393,10 @@ func runSwitchCommand(branchName string) int {
 		if len(modified) > 0 || len(deleted) > 0 {
 			Info("Unstaged changes (%d)", len(modified)+len(deleted))
 			for i, file := range modified {
-				modified[i] = pterm.FgYellow.Sprint(" MOD: ") + file
+				modified[i] = pterm.FgYellow.Sprint(" MOD: ") + file
 			}
 			for i, file := range deleted {
-				deleted[i] = pterm.FgRed.Sprint(" REM: ") + file
+				deleted[i] = pterm.FgRed.Sprint(" REM: ") + file
 			}
 			TreeList(modified, false)
 			TreeList(deleted, false)

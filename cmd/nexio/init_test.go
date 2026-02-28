@@ -14,6 +14,13 @@ func Test_Init(t *testing.T) {
 			t.Errorf("Directory %s not created", dir)
 		}
 	}
+
+	// Verify SQLite database was created
+	dbPath := GetDir("root") + "index.db"
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		t.Errorf("SQLite database not created at %s", dbPath)
+	}
+
 	os.RemoveAll(namespace)
 }
 
@@ -48,21 +55,14 @@ func Test_GetFiles(t *testing.T) {
 		}
 	}
 
-	// Should include known files like staging logs and config
-	foundStagingLogs := false
+	// Should include config file (staging logs are now in SQLite)
 	foundConfig := false
 	for _, file := range files {
-		if strContains(file, "logs.json") {
-			foundStagingLogs = true
-		}
 		if strContains(file, "config.json") {
 			foundConfig = true
 		}
 	}
 
-	if !foundStagingLogs {
-		t.Error("Expected GetFiles to include staging logs file")
-	}
 	if !foundConfig {
 		t.Error("Expected GetFiles to include config file")
 	}
@@ -76,9 +76,6 @@ func Test_GetDir(t *testing.T) {
 	}{
 		{"root", ".nexio"},
 		{"objects", "objects"},
-		{"staging", "staging"},
-		{"commits", "commits"},
-		{"branches", "branches"},
 		{"config", "config.json"},
 	}
 

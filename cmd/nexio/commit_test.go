@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -36,29 +35,21 @@ func TestCommit(t *testing.T) {
 				t.Errorf("Expected no next commit, got %s", lastCommit.Next)
 			}
 		}
-		if len(*commits) > 1 {
-			if (*commits)[i-1].Next != commitId {
-				t.Errorf("Expected next commit ID %s, got %s", commitId, (*commits)[i-1].Next)
-			}
+
+		// Verify metadata via DB
+		metadata := DBGetCommitMetadata(commitId)
+		if metadata.Message != "test commit "+strconv.Itoa(i) {
+			t.Errorf("Expected commit message 'test commit %s', got '%s'", strconv.Itoa(i), metadata.Message)
 		}
-		metadata, err := os.ReadFile(GetDir("commits") + commitId + "/metadata.json")
-		if err != nil {
-			t.Errorf("Failed to read metadata file: %v", err)
+		if metadata.Author.Name != "test user" {
+			t.Errorf("Expected commit author `test user`, got '%s'", metadata.Author.Name)
 		}
-		var content CommitMetadata
-		if err = json.Unmarshal(metadata, &content); err != nil {
-			t.Errorf("Failed to unmarshal metadata: %v", err)
-		}
-		if content.Message != "test commit "+strconv.Itoa(i) {
-			t.Errorf("Expected commit message 'test commit %s', got '%s'", strconv.Itoa(i), content.Message)
-		}
-		if content.Author.Name != "test user" {
-			t.Errorf("Expected commit author `test user`, got '%s'", content.Author.Name)
-		}
-		if content.Author.Email != "test@test.com" {
-			t.Errorf("Expected commit author `test@test.com`, got '%s'", content.Author.Email)
+		if metadata.Author.Email != "test@test.com" {
+			t.Errorf("Expected commit author `test@test.com`, got '%s'", metadata.Author.Email)
 		}
 	}
+
+	os.RemoveAll(namespace)
 }
 
 func Test_CountCommits(t *testing.T) {

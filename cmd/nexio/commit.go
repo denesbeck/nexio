@@ -168,7 +168,7 @@ func displayInteractiveCommitSuccess(commitId string, addCount, modCount, remCou
 
 	// Repository size
 	repoSize := GetRepositorySize()
-	Text(Bold("Repository size: ")+repoSize, "")
+	Text(Bold("Repository size: ")+repoSize, "")
 	BreakLine()
 }
 
@@ -214,23 +214,20 @@ func runCoreCommitCommand(message string) (int, string) {
 	latestCommitId := GetLastCommit().Id
 	Debug("Creating new commit: id=%s, parent=%s", newCommitId, latestCommitId)
 
+	// Register commit first (creates commit record + updates branch head)
+	// This must happen before inserting files/logs due to FK constraints.
+	RegisterCommit(newCommitId, message)
+	Debug("Registered commit for current branch")
+
 	ProcessFileList(latestCommitId, newCommitId)
 	Debug("Processed file list for commit")
 
-	WriteCommitMetadata(newCommitId, message)
-	Debug("Wrote commit metadata")
-
-	if err := CopyFile(GetDir("staging_logs_file"), GetDir("commits")+newCommitId+"/logs.json"); err != nil {
-		Debug("Failed to copy staging logs to commit")
-		MustSucceed(err, "operation failed")
-	}
-
-	Debug("Copied staging logs to commit")
+	// Save staging logs as commit logs before truncating
+	stagingLogs := GetStagingLogsContent()
+	DBSaveCommitLogs(newCommitId, *stagingLogs)
+	Debug("Saved staging logs as commit logs")
 
 	TruncateLogs()
-
-	RegisterCommitForBranch(newCommitId)
-	Debug("Registered commit for current branch")
 
 	return 702, newCommitId
 }

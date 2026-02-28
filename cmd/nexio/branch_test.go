@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"slices"
 	"strconv"
 	"testing"
 )
@@ -11,24 +12,11 @@ func Test_NewBranchCmd(t *testing.T) {
 	runInitCommand()
 	runNewCommand("test-branch", "", "")
 
-	branches, err := os.ReadDir(GetDir("branches"))
-	if err != nil {
-		t.Error(err)
-	}
-
-	found := false
-	for _, branch := range branches {
-		if branch.IsDir() {
-			if branch.Name() == "test-branch" {
-				found = true
-				break
-			}
-		}
-	}
-
-	if !found {
+	branches := ListBranches()
+	if !slices.Contains(branches, "test-branch") {
 		t.Error("Branch `test-branch` not found")
 	}
+
 	os.RemoveAll(namespace)
 }
 
@@ -39,22 +27,16 @@ func Test_NewBranchFromCommit(t *testing.T) {
 	runNewCommand("test-branch", "", "")
 
 	for i := 1; i <= 100; i++ {
-		// create 5 test files
 		os.Create(namespace + "file" + strconv.Itoa(i) + ".txt")
-		// add files to staging
 		runAddCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
-		// commit files
 		runCommitCommand("test commit " + strconv.Itoa(i))
 	}
 
 	selectedCommit := GetLastCommit().Id
 
 	for i := 101; i <= 200; i++ {
-		// create 5 test files
 		os.Create(namespace + "file" + strconv.Itoa(i) + ".txt")
-		// add files to staging
 		runAddCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
-		// commit files
 		runCommitCommand("test commit " + strconv.Itoa(i))
 	}
 	countCommitsOriginalBranch := len(*GetCommits())
@@ -86,11 +68,8 @@ func Test_NewBranchFromBranch(t *testing.T) {
 	runInitCommand()
 	runNewCommand("test-branch", "", "")
 	for i := 1; i < 4; i++ {
-		// create test files
 		os.Create(namespace + "file" + strconv.Itoa(i) + ".txt")
-		// add files to staging
 		runAddCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
-		// commit files
 		runCommitCommand("test commit " + strconv.Itoa(i))
 	}
 	lastCommitOriginalBranch := GetLastCommit().Id
@@ -158,6 +137,8 @@ func Test_DropCurrentBranch(t *testing.T) {
 	if statusCode != 208 {
 		t.Errorf("Expected 208, got %d", statusCode)
 	}
+
+	os.RemoveAll(namespace)
 }
 
 func Test_NewBranchAlreadyExists(t *testing.T) {
@@ -254,7 +235,6 @@ func Test_RunBranchCommand(t *testing.T) {
 	runNewCommand("test-branch-2", "", "")
 
 	// Test runBranchCommand - should list all branches
-	// Just test that it doesn't panic
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("runBranchCommand panicked: %v", r)
@@ -269,7 +249,6 @@ func Test_RunBranchCommand(t *testing.T) {
 func Test_RunBranchCommand_NotInitialized(t *testing.T) {
 	os.RemoveAll(namespace)
 
-	// Test when not initialized
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("runBranchCommand panicked: %v", r)
@@ -285,10 +264,8 @@ func Test_RunCurrentCommand(t *testing.T) {
 	os.RemoveAll(namespace)
 	runInitCommand()
 
-	// Create and switch to a branch
 	runNewCommand("test-branch", "", "")
 
-	// Test runCurrentCommand - should output current branch name
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("runCurrentCommand panicked: %v", r)
@@ -303,7 +280,6 @@ func Test_RunCurrentCommand(t *testing.T) {
 func Test_RunCurrentCommand_NotInitialized(t *testing.T) {
 	os.RemoveAll(namespace)
 
-	// Test when not initialized
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("runCurrentCommand panicked: %v", r)
@@ -319,7 +295,6 @@ func Test_RunDefaultCommand(t *testing.T) {
 	os.RemoveAll(namespace)
 	runInitCommand()
 
-	// Test runDefaultCommand - should output default branch name
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("runDefaultCommand panicked: %v", r)
@@ -334,7 +309,6 @@ func Test_RunDefaultCommand(t *testing.T) {
 func Test_RunDefaultCommand_NotInitialized(t *testing.T) {
 	os.RemoveAll(namespace)
 
-	// Test when not initialized
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("runDefaultCommand panicked: %v", r)
@@ -349,7 +323,6 @@ func Test_RunDefaultCommand_NotInitialized(t *testing.T) {
 func Test_RunNewCommand_NotInitialized(t *testing.T) {
 	os.RemoveAll(namespace)
 
-	// Test when not initialized
 	statusCode := runNewCommand("test-branch", "", "")
 	if statusCode != 001 {
 		t.Errorf("Expected status code 001 (not initialized), got %d", statusCode)
@@ -362,7 +335,6 @@ func Test_RunNewCommand_BothFromCommitAndBranch(t *testing.T) {
 	os.RemoveAll(namespace)
 	runInitCommand()
 
-	// Test error when both from-commit and from-branch are specified
 	statusCode := runNewCommand("test-branch", "abc123", "main")
 	if statusCode != 202 {
 		t.Errorf("Expected status code 202 (can't use both flags), got %d", statusCode)
@@ -375,7 +347,6 @@ func Test_RunNewCommand_FromNonExistentBranch(t *testing.T) {
 	os.RemoveAll(namespace)
 	runInitCommand()
 
-	// Test error when from-branch doesn't exist
 	statusCode := runNewCommand("test-branch", "", "nonexistent-branch")
 	if statusCode != 203 {
 		t.Errorf("Expected status code 203 (branch not found), got %d", statusCode)
@@ -387,7 +358,6 @@ func Test_RunNewCommand_FromNonExistentBranch(t *testing.T) {
 func Test_RunDropCommand_NotInitialized(t *testing.T) {
 	os.RemoveAll(namespace)
 
-	// Test when not initialized
 	statusCode := runDropCommand("test-branch")
 	if statusCode != 001 {
 		t.Errorf("Expected status code 001 (not initialized), got %d", statusCode)
@@ -400,7 +370,6 @@ func Test_RunDropCommand_BranchNotFound(t *testing.T) {
 	os.RemoveAll(namespace)
 	runInitCommand()
 
-	// Test error when branch doesn't exist
 	statusCode := runDropCommand("nonexistent-branch")
 	if statusCode != 207 {
 		t.Errorf("Expected status code 207 (branch not found), got %d", statusCode)
@@ -412,7 +381,6 @@ func Test_RunDropCommand_BranchNotFound(t *testing.T) {
 func Test_RunSwitchCommand_NotInitialized(t *testing.T) {
 	os.RemoveAll(namespace)
 
-	// Test when not initialized
 	statusCode := runSwitchCommand("test-branch")
 	if statusCode != 001 {
 		t.Errorf("Expected status code 001 (not initialized), got %d", statusCode)
@@ -469,23 +437,9 @@ func Test_Branching(t *testing.T) {
 
 	runDropCommand("test-branch1")
 
-	branches, err := os.ReadDir(GetDir("branches"))
-	if err != nil {
-		t.Error(err)
-	}
-
-	found := false
-
-	for _, branch := range branches {
-		if branch.IsDir() {
-			if branch.Name() == "test-branch1" {
-				found = true
-				break
-			}
-		}
-	}
-
-	if found {
+	// Verify branch is deleted from DB
+	branches := ListBranches()
+	if slices.Contains(branches, "test-branch1") {
 		t.Error("branch `test-branch1` not deleted")
 	}
 

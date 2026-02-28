@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 
@@ -25,60 +23,11 @@ var (
 )
 
 func LogOperation(id string, op string, path string, blobHash string) {
-	Debug("Logging operation: id=%s, op=%s, path=%s", id, op, path)
-
-	err := WithLock(GetDir("staging_logs_file"), DefaultLockTimeout, func() error {
-		logs, err := os.ReadFile(GetDir("staging_logs_file"))
-		if err != nil {
-			Debug("Failed to read staging logs")
-			MustSucceed(err, "operation failed")
-		}
-		var content []LogFileEntry
-		if len(logs) > 0 {
-			if err = json.Unmarshal(logs, &content); err != nil {
-				Debug("Failed to unmarshal staging logs")
-				MustSucceed(err, "operation failed")
-			}
-		}
-		content = append(content, LogFileEntry{
-			Id:       id,
-			Op:       op,
-			Path:     path,
-			BlobHash: blobHash,
-		})
-		WriteJson(GetDir("staging_logs_file"), content)
-		Debug("Operation logged successfully")
-		return nil
-	})
-
-	if err != nil {
-		MustSucceed(err, "operation failed")
-	}
+	DBLogOperation(id, op, path, blobHash)
 }
 
 func LogEntryLookup(op string, path string) (bool, *LogFileEntry) {
-	Debug("Looking up log entry: op=%s, path=%s", op, path)
-	logs, err := os.ReadFile(GetDir("staging_logs_file"))
-	if err != nil {
-		Debug("Failed to read staging logs")
-		MustSucceed(err, "operation failed")
-	}
-	var content []LogFileEntry
-	if len(logs) > 0 {
-		if err = json.Unmarshal(logs, &content); err != nil {
-			Debug("Failed to unmarshal staging logs")
-			MustSucceed(err, "operation failed")
-		}
-		for _, entry := range content {
-			// Consider op "*" as a wildcard.
-			if op == "*" && entry.Path == path || entry.Op == op && entry.Path == path {
-				Debug("Found log entry: id=%s, op=%s", entry.Id, entry.Op)
-				return true, &entry
-			}
-		}
-	}
-	Debug("No matching log entry found")
-	return false, nil
+	return DBLogEntryLookup(op, path)
 }
 
 func IsStagingLogsEmpty() bool {
@@ -92,101 +41,21 @@ func IsStagingLogsEmpty() bool {
 }
 
 func RemoveLogEntry(id string) error {
-	Debug("Removing log entry: id=%s", id)
-
-	stagingLogsFilePath := GetDir("staging_logs_file")
-	err := WithLock(stagingLogsFilePath, DefaultLockTimeout, func() error {
-		logs, err := os.ReadFile(stagingLogsFilePath)
-		if err != nil {
-			Debug("Failed to read staging logs")
-			MustSucceed(err, "operation failed")
-		}
-		var content []LogFileEntry
-		if len(logs) > 0 {
-			if err = json.Unmarshal(logs, &content); err != nil {
-				Debug("Failed to unmarshal staging logs")
-				MustSucceed(err, "operation failed")
-			}
-		}
-		for i, entry := range content {
-			if entry.Id == id {
-				Debug("Found and removing log entry: id=%s, op=%s", entry.Id, entry.Op)
-				content = slices.Delete(content, i, i+1)
-				break
-			}
-		}
-		WriteJson(stagingLogsFilePath, content)
-		Debug("Log entry removed successfully")
-		return nil
-	})
-
-	if err != nil {
-		return err
-	}
-
-	return nil // fallback
+	return DBRemoveLogEntry(id)
 }
 
 func TruncateLogs() {
-	Debug("Truncating staging logs")
-
-	staginsLogsFile := GetDir("staging_logs_file")
-	err := WithLock(staginsLogsFile, DefaultLockTimeout, func() error {
-		WriteJson(staginsLogsFile, []LogFileEntry{})
-		Debug("Staging logs truncated successfully")
-		return nil
-	})
-
-	if err != nil {
-		MustSucceed(err, "operation failed")
-	}
+	DBTruncateLogs()
 }
 
 func GetStagingLogsContent() (result *[]LogFileEntry) {
-	Debug("Getting staging logs content")
-	logs, err := os.ReadFile(GetDir("staging_logs_file"))
-	if err != nil {
-		Debug("Failed to read staging logs")
-		MustSucceed(err, "operation failed")
-	}
-	var content []LogFileEntry
-	if len(logs) > 0 {
-		if err = json.Unmarshal(logs, &content); err != nil {
-			Debug("Failed to unmarshal staging logs")
-			MustSucceed(err, "operation failed")
-		}
-	} else {
-		content = []LogFileEntry{}
-		Debug("Staging logs are empty")
-		return &content
-	}
-	Debug("Retrieved %d log entries", len(content))
-	return &content
+	logs := DBGetStagingLogs()
+	return &logs
 }
 
 func GetSyncedStagingLogsContent() (result *[]LogFileEntry) {
-	Debug("Getting synced staging logs content")
-	content := GetStagingLogsContent()
-
-	diff := false
-	// Clean staged files to match filesystem state (e.g., remove deleted files from staging)
-	for _, entry := range *content {
-		if entry.Op == "REM" {
-			continue
-		}
-		exists := FileExists(entry.Path)
-		if !exists {
-			diff = true
-			RemoveLogEntry(entry.Id)
-		}
-	}
-
-	if diff {
-		// Refetch staged files after cleanup if any entries were removed
-		Debug("Refetching staged files after cleanup...")
-		content = GetStagingLogsContent()
-	}
-	return content
+	logs := DBGetSyncedStagingLogs()
+	return &logs
 }
 
 func SortByOperationAndPath(content []LogFileEntry) (result *[]LogFileEntry) {
@@ -219,11 +88,11 @@ func PrintLogs(content []LogFileEntry) {
 	for _, logEntry := range *sortedContent {
 		switch logEntry.Op {
 		case "ADD":
-			log = append(log, add(" "+logEntry.Op+":")+" "+logEntry.Path)
+			log = append(log, add(" "+logEntry.Op+":")+" "+logEntry.Path)
 		case "MOD":
-			log = append(log, mod(" "+logEntry.Op+":")+" "+logEntry.Path)
+			log = append(log, mod(" "+logEntry.Op+":")+" "+logEntry.Path)
 		case "REM":
-			log = append(log, rem(" "+logEntry.Op+":")+" "+logEntry.Path)
+			log = append(log, rem(" "+logEntry.Op+":")+" "+logEntry.Path)
 		default:
 			log = append(log, logEntry.Op+" "+logEntry.Path)
 		}
@@ -243,11 +112,11 @@ func FormatLogs(content []LogFileEntry) string {
 	for _, logEntry := range *sortedContent {
 		switch logEntry.Op {
 		case "ADD":
-			log = append(log, add(" "+logEntry.Op+":")+" "+logEntry.Path)
+			log = append(log, add(" "+logEntry.Op+":")+" "+logEntry.Path)
 		case "MOD":
-			log = append(log, mod(" "+logEntry.Op+":")+" "+logEntry.Path)
+			log = append(log, mod(" "+logEntry.Op+":")+" "+logEntry.Path)
 		case "REM":
-			log = append(log, rem(" "+logEntry.Op+":")+" "+logEntry.Path)
+			log = append(log, rem(" "+logEntry.Op+":")+" "+logEntry.Path)
 		default:
 			log = append(log, logEntry.Op+" "+logEntry.Path)
 		}
@@ -284,7 +153,7 @@ func CountOps(content []LogFileEntry) (add int, mod int, rem int) {
 	return add, mod, rem
 }
 
-// Checks if blob hash references in staging logs file exist
+// Checks if blob hash references in staging logs exist
 func ValidateStagingIntegrity() []string {
 	Debug("Validating staging integrity")
 	logs := GetStagingLogsContent()

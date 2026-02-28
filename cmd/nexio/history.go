@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -57,36 +55,21 @@ func runHistoryCommand() (returnCode int, history []History) {
 	BreakLine()
 	for _, commit := range *commits {
 		Debug("Processing commit: %s", commit.Id)
-		data, err := os.ReadFile(GetDir("commits") + commit.Id + "/metadata.json")
-		if err != nil {
-			Debug("Failed to read commit metadata")
-			MustSucceed(err, "operation failed")
-		}
-		var metadata CommitMetadata
-		if err = json.Unmarshal(data, &metadata); err != nil {
-			Debug("Failed to unmarshal commit metadata")
-			MustSucceed(err, "operation failed")
-		}
+
+		// Get metadata from DB
+		metadata := DBGetCommitMetadata(commit.Id)
 
 		author := metadata.Author.Name + " <" + metadata.Author.Email + ">"
 		if metadata.Author.Name == "" || metadata.Author.Email == "" {
 			author = "Unknown"
 		}
 
-		data, err = os.ReadFile(GetDir("commits") + commit.Id + "/logs.json")
-		if err != nil {
-			Debug("Failed to read commit logs")
-			MustSucceed(err, "operation failed")
-		}
-		var logs []LogFileEntry
-		if err = json.Unmarshal(data, &logs); err != nil {
-			Debug("Failed to unmarshal commit logs")
-			MustSucceed(err, "operation failed")
-		}
+		// Get commit logs from DB
+		logs := DBGetCommitLogs(commit.Id)
 		Debug("Displaying %d log entries for commit", len(logs))
 
 		logsFormatted := FormatLogs(logs)
-		boxContent := fmt.Sprintf(Icon("")+"  Author:  %s\n"+Icon("")+"  Date:    %s\n"+Icon("")+"  Message: %s",
+		boxContent := fmt.Sprintf(Icon("")+"  Author:  %s\n"+Icon("")+"  Date:    %s\n"+Icon("")+"  Message: %s",
 			author,
 			TimeAgo(commit.Timestamp),
 			metadata.Message,
@@ -95,10 +78,10 @@ func runHistoryCommand() (returnCode int, history []History) {
 		add, mod, rem := CountOps(logs)
 
 		if logsFormatted != "" {
-			boxContent += "\n\n" + Icon("") + "  Files: " + Code(fmt.Sprintf("+%d -%d ~%d", add, rem, mod)) + "\n" + logsFormatted
+			boxContent += "\n\n" + Icon("") + "  Files: " + Code(fmt.Sprintf("+%d -%d ~%d", add, rem, mod)) + "\n" + logsFormatted
 		}
 
-		Box(Bold(StyledCommit(" "+commit.Id[:10])), boxContent)
+		Box(Bold(StyledCommit(" "+commit.Id[:10])), boxContent)
 		BreakLine()
 		BreakLine()
 		history = append(history, History{
