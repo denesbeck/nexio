@@ -7,8 +7,12 @@ on:
 
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  Scan:
+  scan:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -23,26 +27,26 @@ jobs:
           GITHUB_DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
 
-  Build:
-    needs: Scan
+  build:
+    needs: scan
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Golang environment
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
 
-      - run: go version
+      - name: Verify Go version
+        run: go version
 
       - name: Install dependencies
         run: go mod download
 
       - name: Lint
         run: go vet ./...
-        continue-on-error: true
 
       - name: Check formatting
         run: |
