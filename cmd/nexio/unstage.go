@@ -10,6 +10,7 @@ func init() {
 
 var unstageCmd = &cobra.Command{
 	Use:     "unstage",
+	Aliases: []string{"usg"},
 	Short:   "Unstage the selected files from the staging area",
 	Example: "nexio unstage <path/to/your/file>",
 	Args:    cobra.ExactArgs(1),

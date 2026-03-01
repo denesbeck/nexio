@@ -21,6 +21,7 @@ type StageResult struct {
 
 var stageCmd = &cobra.Command{
 	Use:     "stage",
+	Aliases: []string{"sg"},
 	Short:   "Stage the selected files for commit",
 	Example: "nexio stage <path/to/your/file>\nnexio stage file1 file2 file3\nnexio stage .",
 	Args:    cobra.MinimumNArgs(1),

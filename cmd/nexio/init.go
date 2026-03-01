@@ -13,6 +13,7 @@ func init() {
 
 var initCmd = &cobra.Command{
 	Use:     "init",
+	Aliases: []string{"i"},
 	Short:   "Initialize the Nexio version control system",
 	Example: "nexio init",
 	Args:    cobra.NoArgs,

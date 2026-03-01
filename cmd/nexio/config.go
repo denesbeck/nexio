@@ -120,9 +120,10 @@ var getUserCmd = &cobra.Command{
 }
 
 var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Config manager",
-	Args:  cobra.ExactArgs(1),
+	Use:     "config",
+	Aliases: []string{"cfg"},
+	Short:   "Config manager",
+	Args:    cobra.ExactArgs(1),
 }
 
 func setConfig(key string, value string) int {

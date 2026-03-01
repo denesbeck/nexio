@@ -18,6 +18,7 @@ var Verbose bool
 
 var cleanCmd = &cobra.Command{
 	Use:     "clean",
+	Aliases: []string{"cl"},
 	Short:   "Clean orphaned blobs from the object store",
 	Example: "nexio clean",
 	Run: func(_ *cobra.Command, args []string) {

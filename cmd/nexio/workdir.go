@@ -12,6 +12,7 @@ func init() {
 
 var workdirCmd = &cobra.Command{
 	Use:     "workdir",
+	Aliases: []string{"wd"},
 	Short:   "List the files that are committed",
 	Example: "nexio workdir",
 	Args:    cobra.NoArgs,

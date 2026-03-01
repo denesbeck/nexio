@@ -28,6 +28,7 @@ var (
 
 var branchCmd = &cobra.Command{
 	Use:     "branch",
+	Aliases: []string{"br"},
 	Short:   "Branch management",
 	Example: "nexio branch",
 	Args:    cobra.NoArgs,
@@ -39,6 +40,7 @@ var branchCmd = &cobra.Command{
 
 var currentCmd = &cobra.Command{
 	Use:     "current",
+	Aliases: []string{"cur"},
 	Short:   "Get current branch",
 	Example: "nexio branch current",
 	Args:    cobra.NoArgs,
@@ -50,6 +52,7 @@ var currentCmd = &cobra.Command{
 
 var defaultCmd = &cobra.Command{
 	Use:     "default",
+	Aliases: []string{"def"},
 	Short:   "Get default branch",
 	Example: "nexio branch default",
 	Args:    cobra.NoArgs,
@@ -61,6 +64,7 @@ var defaultCmd = &cobra.Command{
 
 var newCmd = &cobra.Command{
 	Use:     "new",
+	Aliases: []string{"n"},
 	Short:   "Create a new branch",
 	Example: "nexio new <branch-name> --from-commit <commit-id> --from-branch <branch-name>",
 	Args:    cobra.ExactArgs(1),
@@ -72,6 +76,7 @@ var newCmd = &cobra.Command{
 
 var dropCmd = &cobra.Command{
 	Use:     "drop",
+	Aliases: []string{"d"},
 	Short:   "Delete a branch",
 	Example: "nexio drop <branch-name>",
 	Args:    cobra.ArbitraryArgs,
@@ -96,6 +101,7 @@ var dropCmd = &cobra.Command{
 
 var switchCmd = &cobra.Command{
 	Use:     "switch",
+	Aliases: []string{"sw"},
 	Short:   "Switch to a branch",
 	Example: "nexio switch <branch-name>",
 	Args:    cobra.MaximumNArgs(1),
