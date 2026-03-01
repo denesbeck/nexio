@@ -13,6 +13,7 @@ func init() {
 
 var historyCmd = &cobra.Command{
 	Use:     "history",
+	Aliases: []string{"hi"},
 	Short:   "List all commits for the current branch",
 	Example: "nexio history",
 	Args:    cobra.NoArgs,

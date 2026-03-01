@@ -13,6 +13,7 @@ func init() {
 
 var statusCmd = &cobra.Command{
 	Use:     "status",
+	Aliases: []string{"st"},
 	Short:   "List the files that are staged for commit",
 	Example: "nexio status",
 	Args:    cobra.NoArgs,

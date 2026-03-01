@@ -37,6 +37,7 @@ var Message string
 
 var commitCmd = &cobra.Command{
 	Use:     "commit",
+	Aliases: []string{"cm"},
 	Short:   "Record changes to the repository",
 	Example: "nexio commit -m <your commit message>\n  nexio commit  (interactive mode)",
 	Args:    cobra.NoArgs,
