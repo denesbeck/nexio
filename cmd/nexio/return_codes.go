@@ -81,6 +81,7 @@ var COMMIT_RETURN_CODES = map[int]string{
 var UNSTAGE_RETURN_CODES = map[int]string{
 	801: "File removed from staging.",
 	802: "File was not staged.",
+	803: "Failed to remove file from staging.",
 }
 
 var PURGE_RETURN_CODES = map[int]string{
