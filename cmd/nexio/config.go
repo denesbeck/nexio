@@ -17,16 +17,19 @@ func init() {
 	setCmd.AddCommand(setDefaultBranchCmd)
 	setCmd.AddCommand(setNameCmd)
 	setCmd.AddCommand(setEmailCmd)
+	setCmd.AddCommand(setRemoteCmd)
 
 	getCmd.AddCommand(getDefaultBranchCmd)
 	getCmd.AddCommand(getNameCmd)
 	getCmd.AddCommand(getEmailCmd)
 	getCmd.AddCommand(getUserCmd)
+	getCmd.AddCommand(getRemoteCmd)
 }
 
 type Config struct {
-	Name  string `json:"name"`
-	Email string `json:"email"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Remote string `json:"remote,omitempty"`
 }
 
 var setCmd = &cobra.Command{
@@ -65,6 +68,17 @@ var setEmailCmd = &cobra.Command{
 	Run: func(_ *cobra.Command, args []string) {
 		Debug("Setting email: %s", args[0])
 		setConfig("email", args[0])
+	},
+}
+
+var setRemoteCmd = &cobra.Command{
+	Use:     "remote",
+	Short:   "Set remote URL",
+	Example: "nexio config set remote s3://my-bucket/nexio-repo",
+	Args:    cobra.ExactArgs(1),
+	Run: func(_ *cobra.Command, args []string) {
+		Debug("Setting remote: %s", args[0])
+		setConfig("remote", args[0])
 	},
 }
 
@@ -119,6 +133,17 @@ var getUserCmd = &cobra.Command{
 	},
 }
 
+var getRemoteCmd = &cobra.Command{
+	Use:     "remote",
+	Short:   "Get remote URL",
+	Example: "nexio config get remote",
+	Args:    cobra.ExactArgs(0),
+	Run: func(_ *cobra.Command, args []string) {
+		Debug("Getting remote")
+		getConfig("remote")
+	},
+}
+
 var configCmd = &cobra.Command{
 	Use:     "config",
 	Aliases: []string{"cfg"},
@@ -149,6 +174,8 @@ func setConfig(key string, value string) int {
 		content.Name = value
 	case "email":
 		content.Email = value
+	case "remote":
+		content.Remote = value
 	}
 
 	jsonData, err := json.Marshal(content)
@@ -198,6 +225,14 @@ func getConfig(key string) (returnCode int, conf Config) {
 		}
 		Debug("User: %s <%s>", config.Name, config.Email)
 		Info("%s: %s", Capitalize(key), color.BlueString(config.Name+" <"+config.Email+">"))
+	case "remote":
+		if config.Remote == "" {
+			Debug("%s", CONFIG_RETURN_CODES[608])
+			Fail("%s", CONFIG_RETURN_CODES[608])
+			return 608, Config{}
+		}
+		Debug("Remote: %s", config.Remote)
+		Info("%s: %s", Capitalize(key), color.BlueString(config.Remote))
 	}
 	return 604, *config
 }
