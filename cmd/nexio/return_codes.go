@@ -71,6 +71,18 @@ var CONFIG_RETURN_CODES = map[int]string{
 	605: "Name not set.",
 	606: "Email not set.",
 	607: "Name and/or email not set.",
+	608: "Remote not set.",
+}
+
+var REMOTE_RETURN_CODES = map[int]string{
+	1101: "Push completed successfully.",
+	1102: "Pull completed successfully.",
+	1103: "Clone completed successfully.",
+	1104: "No remote configured.",
+	1105: "Remote is locked.",
+	1106: "Remote has commits not present locally.",
+	1107: "Local history has diverged from remote.",
+	1108: "Uncommitted staged changes exist.",
 }
 
 var COMMIT_RETURN_CODES = map[int]string{

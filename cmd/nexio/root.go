@@ -11,8 +11,8 @@ var rootCmd = &cobra.Command{
 	Short:   "Nexio is a version control system inspired by Git",
 	Version: version,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		// Initialize database for all commands except init and purge
-		if cmd.Name() != "init" && cmd.Name() != "purge" && cmd.Parent() != nil {
+		// Initialize database for all commands except init, purge, and clone
+		if cmd.Name() != "init" && cmd.Name() != "purge" && cmd.Name() != "clone" && cmd.Parent() != nil {
 			if IsInitialized() {
 				if err := InitDB(); err != nil {
 					Debug("Failed to initialize database: %v", err)
