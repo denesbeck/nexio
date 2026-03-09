@@ -45,23 +45,22 @@ git clone https://github.com/denesbeck/nexio.git
 cd nexio
 ```
 
-2. Install dependencies:
+2. Build the binary:
 
 ```bash
-go mod download
+make build
 ```
 
-3. Build the binary:
+Or, to download dependencies and install Git hooks in one step:
 
 ```bash
-go build -o nexio ./cmd/nexio
+make setup
 ```
 
-4. (Optional) Add to PATH:
+3. (Optional) Install to your `$GOPATH/bin`:
 
 ```bash
-# Add to your shell profile (.bashrc, .zshrc, etc.)
-export PATH="$PATH:/path/to/nexio"
+make install
 ```
 
 ## Usage
@@ -180,39 +179,76 @@ For detailed command usage, run:
 
 ## Development
 
-### Development Setup
-
-Install Git hooks to ensure code quality:
+### First-Time Setup
 
 ```bash
-make install-hooks
+make setup
 ```
 
-This installs a pre-commit hook that automatically runs:
-- `go vet ./...` - Lints code for common issues
-- `gofmt -l .` - Checks code formatting
+This downloads dependencies and installs the pre-commit Git hook, which automatically runs `go vet` and `gofmt` checks before each commit.
 
-If formatting issues are detected, fix them with:
+### Building
 
 ```bash
-gofmt -w .
+make build            # Quick dev build
+make build-release    # Stripped binary with version from git tags
+make install          # Install to $GOPATH/bin
+make run ARGS="status"  # Build and run with arguments
 ```
 
-To remove the hooks:
+You can override the version: `make build-release VERSION=v1.0.0`
+
+### Code Quality
 
 ```bash
-make uninstall-hooks
+make fmt        # Auto-format all Go files
+make fmt-check  # Check formatting (fails if files need changes)
+make vet        # Run go vet
+make lint       # Run all linters (vet + format check)
 ```
 
 ### Running Tests
 
-Run the test suite using the provided script:
-
 ```bash
-bash ./scripts/run-tests.sh
+make test                    # Verbose tests with coverage
+make test-short              # Quiet test run
+make test-run RUN=TestInit   # Run a specific test by name
+make coverage                # Generate HTML coverage report
 ```
 
-**Important:** Always use `run-tests.sh` instead of `go test` directly. The script sets the `NEXIO_ENV=test` environment variable, which ensures tests run in an isolated namespace to prevent conflicts with your actual `.nexio` directory.
+**Important:** Always use `make test` instead of `go test` directly. The Makefile sets `NEXIO_ENV=test`, which ensures tests run in an isolated namespace to prevent conflicts with your actual `.nexio` directory.
+
+### CI
+
+Run the full CI pipeline locally (deps, lint, test, build):
+
+```bash
+make ci
+```
+
+### Cross-Compilation & Release
+
+```bash
+make build-all  # Cross-compile for darwin/amd64, darwin/arm64, linux/amd64
+make dist       # Cross-compile and package tarballs into dist/
+```
+
+### Cleanup
+
+```bash
+make clean  # Remove build artifacts and test leftovers
+```
+
+### Git Hooks
+
+```bash
+make install-hooks    # Install the pre-commit hook
+make uninstall-hooks  # Remove the pre-commit hook
+```
+
+### All Make Targets
+
+Run `make help` to see the full list of available targets.
 
 ### Project Structure
 
