@@ -202,8 +202,8 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		if result == nil {
 			t.Errorf("Expected non-nil result")
 		}
-		if len(*result) != 0 {
-			t.Errorf("Expected empty staging logs, got %d entries", len(*result))
+		if len(result) != 0 {
+			t.Errorf("Expected empty staging logs, got %d entries", len(result))
 		}
 	})
 
@@ -228,13 +228,13 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 
 		result := GetSyncedStagingLogsContent()
 
-		if len(*result) != 3 {
-			t.Errorf("Expected 3 entries, got %d", len(*result))
+		if len(result) != 3 {
+			t.Errorf("Expected 3 entries, got %d", len(result))
 		}
 
 		// Verify all entries are still present
 		foundIds := make(map[string]bool)
-		for _, entry := range *result {
+		for _, entry := range result {
 			foundIds[entry.Id] = true
 		}
 
@@ -271,8 +271,8 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 
 		// Verify all 3 entries exist before deletion
 		logsBeforeDelete := GetStagingLogsContent()
-		if len(*logsBeforeDelete) != 3 {
-			t.Errorf("Expected 3 entries before deletion, got %d", len(*logsBeforeDelete))
+		if len(logsBeforeDelete) != 3 {
+			t.Errorf("Expected 3 entries before deletion, got %d", len(logsBeforeDelete))
 		}
 
 		// Delete files from filesystem
@@ -283,16 +283,16 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		result := GetSyncedStagingLogsContent()
 
 		// Should only have 1 entry remaining (existingFile)
-		if len(*result) != 1 {
-			t.Errorf("Expected 1 entry after sync, got %d", len(*result))
+		if len(result) != 1 {
+			t.Errorf("Expected 1 entry after sync, got %d", len(result))
 		}
 
-		if (*result)[0].Id != existingId {
-			t.Errorf("Expected remaining entry to have id %s, got %s", existingId, (*result)[0].Id)
+		if result[0].Id != existingId {
+			t.Errorf("Expected remaining entry to have id %s, got %s", existingId, result[0].Id)
 		}
 
-		if (*result)[0].Path != existingFile {
-			t.Errorf("Expected remaining entry to have path %s, got %s", existingFile, (*result)[0].Path)
+		if result[0].Path != existingFile {
+			t.Errorf("Expected remaining entry to have path %s, got %s", existingFile, result[0].Path)
 		}
 
 		// Cleanup
@@ -320,8 +320,8 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 
 		result := GetSyncedStagingLogsContent()
 
-		if len(*result) != 0 {
-			t.Errorf("Expected empty logs after all files deleted, got %d entries", len(*result))
+		if len(result) != 0 {
+			t.Errorf("Expected empty logs after all files deleted, got %d entries", len(result))
 		}
 
 		TruncateLogs()
@@ -360,13 +360,13 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		result := GetSyncedStagingLogsContent()
 
 		// Should have 3 entries remaining
-		if len(*result) != 3 {
-			t.Errorf("Expected 3 entries, got %d", len(*result))
+		if len(result) != 3 {
+			t.Errorf("Expected 3 entries, got %d", len(result))
 		}
 
 		// Verify correct entries remain
 		foundIds := make(map[string]bool)
-		for _, entry := range *result {
+		for _, entry := range result {
 			foundIds[entry.Id] = true
 		}
 
@@ -414,8 +414,8 @@ func Test_GetSyncedStagingLogsContent(t *testing.T) {
 		result := GetSyncedStagingLogsContent()
 
 		// Verify log entry is removed
-		if len(*result) != 0 {
-			t.Errorf("Expected log to be empty after sync, got %d entries", len(*result))
+		if len(result) != 0 {
+			t.Errorf("Expected log to be empty after sync, got %d entries", len(result))
 		}
 
 		// Verify we can't find the entry anymore

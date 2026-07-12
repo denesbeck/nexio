@@ -56,10 +56,10 @@ func Test_ParentChain_Linear(t *testing.T) {
 
 	// History is returned oldest-first and matches the commit order.
 	commits := GetCommits()
-	if len(*commits) != len(ids) {
-		t.Fatalf("Expected %d commits, got %d", len(ids), len(*commits))
+	if len(commits) != len(ids) {
+		t.Fatalf("Expected %d commits, got %d", len(ids), len(commits))
 	}
-	for i, c := range *commits {
+	for i, c := range commits {
 		if c.Id != ids[i] {
 			t.Errorf("History position %d: expected %q, got %q", i, ids[i], c.Id)
 		}

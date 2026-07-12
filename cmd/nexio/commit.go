@@ -121,7 +121,7 @@ func runInteractiveCommit() {
 	commitMessage := fmt.Sprintf("%s: %s", commitTypeName, description)
 
 	stagingLogs := GetSyncedStagingLogsContent()
-	addCount, modCount, remCount := CountOps(*stagingLogs)
+	addCount, modCount, remCount := CountOps(stagingLogs)
 
 	returnCode, commitId := runCoreCommitCommand(commitMessage)
 
@@ -225,7 +225,7 @@ func runCoreCommitCommand(message string) (int, string) {
 
 	// Save staging logs as commit logs before truncating
 	stagingLogs := GetStagingLogsContent()
-	DBSaveCommitLogs(newCommitId, *stagingLogs)
+	DBSaveCommitLogs(newCommitId, stagingLogs)
 	Debug("Saved staging logs as commit logs")
 
 	TruncateLogs()

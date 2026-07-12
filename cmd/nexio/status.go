@@ -36,11 +36,11 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 	BreakLine()
 	Box(Bold("Status"), fmt.Sprintf(pterm.FgCyan.Sprint(" ")+"Branch: %s\n"+pterm.FgCyan.Sprint(" ")+"Commits: %d\n"+pterm.FgCyan.Sprint(" ")+"Last commit: %s", currentBranch, commitCount, TimeAgo(lastCommit.Timestamp)))
 	BreakLine()
-	if len(*content) != 0 {
-		Debug("Found %d files staged for commit.", len(*content))
+	if len(content) != 0 {
+		Debug("Found %d files staged for commit.", len(content))
 		BreakLine()
-		Info("Staged changes (%d)", len(*content))
-		PrintLogs(*content)
+		Info("Staged changes (%d)", len(content))
+		PrintLogs(content)
 	} else {
 		Debug("%s", STATUS_RETURN_CODES[501])
 	}
@@ -73,12 +73,12 @@ func runStatusCommand() (returnCode int, stagingLogs []LogFileEntry) {
 		Debug("%s", STATUS_RETURN_CODES[504])
 	}
 
-	if len(*content) == 0 && len(modified) == 0 && len(deleted) == 0 && len(untracked) == 0 {
+	if len(content) == 0 && len(modified) == 0 && len(deleted) == 0 && len(untracked) == 0 {
 		Debug("%s", STATUS_RETURN_CODES[505])
 		BreakLine()
 		Info("%s", STATUS_RETURN_CODES[505])
 	}
 	BreakLine()
 	Debug("Status command completed successfully")
-	return 502, *content
+	return 502, content
 }

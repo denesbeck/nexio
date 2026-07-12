@@ -45,7 +45,7 @@ func expandUnstageFilePaths(args []string) []string {
 		if arg == "." {
 			Debug("Unstaging all staged files")
 			stagedFiles := GetStagingLogsContent()
-			for _, entry := range *stagedFiles {
+			for _, entry := range stagedFiles {
 				filePaths = append(filePaths, entry.Path)
 			}
 		} else {

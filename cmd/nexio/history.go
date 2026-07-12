@@ -39,22 +39,22 @@ func runHistoryCommand() (returnCode int, history []History) {
 	}
 
 	commits := GetCommits()
-	if len(*commits) == 0 {
+	if len(commits) == 0 {
 		Debug("%s", HISTORY_RETURN_CODES[402])
 		Info("%s", HISTORY_RETURN_CODES[402])
 		return 402, nil
 	}
-	if len(*commits) > 20 {
+	if len(commits) > 20 {
 		Debug("Limiting to last 20 commits")
-		*commits = (*commits)[:20]
+		commits = commits[:20]
 	}
 
-	Debug("Displaying %d commits", len(*commits))
+	Debug("Displaying %d commits", len(commits))
 
-	history = make([]History, 0, len(*commits))
+	history = make([]History, 0, len(commits))
 
 	BreakLine()
-	for _, commit := range *commits {
+	for _, commit := range commits {
 		Debug("Processing commit: %s", commit.Id)
 
 		// Get metadata from DB

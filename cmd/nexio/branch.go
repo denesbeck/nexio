@@ -389,9 +389,9 @@ func runSwitchCommand(branchName string) int {
 
 		// Show what changes would be lost
 		stagingLogs := GetSyncedStagingLogsContent()
-		if len(*stagingLogs) > 0 {
-			Info("Staged changes (%d)", len(*stagingLogs))
-			PrintLogs(*stagingLogs)
+		if len(stagingLogs) > 0 {
+			Info("Staged changes (%d)", len(stagingLogs))
+			PrintLogs(stagingLogs)
 		}
 		BreakLine()
 
@@ -420,7 +420,7 @@ func runSwitchCommand(branchName string) int {
 	// Remove the tracked files from the old branch
 	if oldBranchCommitId != "" {
 		fileList := GetFileListContent(oldBranchCommitId)
-		for _, file := range *fileList {
+		for _, file := range fileList {
 			RemoveFile("./" + file.Path)
 		}
 	}
@@ -431,7 +431,7 @@ func runSwitchCommand(branchName string) int {
 	// Restore the tracked files from the new branch
 	if newBranchCommitId != "" {
 		fileList := GetFileListContent(newBranchCommitId)
-		for _, file := range *fileList {
+		for _, file := range fileList {
 			err := RestoreBlob(file.BlobHash, "./"+file.Path, os.FileMode(file.Mode))
 			if err != nil {
 				Debug("Failed to restore file %s: %v", file.Path, err)

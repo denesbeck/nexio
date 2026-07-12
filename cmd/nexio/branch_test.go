@@ -39,7 +39,7 @@ func Test_NewBranchFromCommit(t *testing.T) {
 		runStageCommand(namespace+"file"+strconv.Itoa(i)+".txt", false)
 		runCommitCommand("test commit " + strconv.Itoa(i))
 	}
-	countCommitsOriginalBranch := len(*GetCommits())
+	countCommitsOriginalBranch := len(GetCommits())
 
 	if countCommitsOriginalBranch != 200 {
 		t.Errorf("Expected 200 commits, got %d", countCommitsOriginalBranch)
@@ -49,7 +49,7 @@ func Test_NewBranchFromCommit(t *testing.T) {
 	t.Log(selectedCommit)
 	runNewCommand("test-branch-1", selectedCommit, "")
 
-	countCommitsNewBranch := len(*GetCommits())
+	countCommitsNewBranch := len(GetCommits())
 	if countCommitsNewBranch != 100 {
 		t.Errorf("Expected 100 commits, got %d", countCommitsNewBranch)
 	}
@@ -76,8 +76,8 @@ func Test_NewBranchFromBranch(t *testing.T) {
 
 	runNewCommand("test-branch-1", "", "test-branch")
 	commits := GetCommits()
-	if len(*commits) != 3 {
-		t.Errorf("Expected 3 commits, got %d", len(*commits))
+	if len(commits) != 3 {
+		t.Errorf("Expected 3 commits, got %d", len(commits))
 	}
 	lastCommitNewBranch := GetLastCommit().Id
 	if lastCommitOriginalBranch != lastCommitNewBranch {

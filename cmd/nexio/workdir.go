@@ -36,12 +36,12 @@ func runWorkdirCommand() (returnCode int, workdirContent []FileListEntry) {
 	// If there is a commit, there should be at least one file
 	content := GetFileListContent(commitId)
 
-	sort.Slice(*content, func(i, j int) bool {
-		return (*content)[i].Path < (*content)[j].Path
+	sort.Slice(content, func(i, j int) bool {
+		return content[i].Path < content[j].Path
 	})
 
 	files := []string{}
-	for _, record := range *content {
+	for _, record := range content {
 		files = append(files, record.Path)
 	}
 
@@ -53,5 +53,5 @@ func runWorkdirCommand() (returnCode int, workdirContent []FileListEntry) {
 	BreakLine()
 	BreakLine()
 
-	return 301, *content
+	return 301, content
 }

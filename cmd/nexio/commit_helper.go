@@ -35,14 +35,12 @@ func CountCommits() int {
 	return DBCountCommits()
 }
 
-func GetCommits() *[]Commit {
-	commits := DBGetCommits()
-	return &commits
+func GetCommits() []Commit {
+	return DBGetCommits()
 }
 
-func GetFileListContent(commitId string) (result *[]FileListEntry) {
-	files := DBGetFileListForCommit(commitId)
-	return &files
+func GetFileListContent(commitId string) []FileListEntry {
+	return DBGetFileListForCommit(commitId)
 }
 
 func ProcessFileList(latestCommitId string, newCommitId string) {
@@ -61,8 +59,8 @@ func HasUncommittedChanges() bool {
 
 	// Check for staged files
 	stagingLogs := GetStagingLogsContent()
-	if len(*stagingLogs) > 0 {
-		Debug("Found %d staged files", len(*stagingLogs))
+	if len(stagingLogs) > 0 {
+		Debug("Found %d staged files", len(stagingLogs))
 		return true
 	}
 

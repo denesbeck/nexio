@@ -41,7 +41,7 @@ func runPullCommand() {
 
 	// Check for uncommitted staged changes
 	stagingLogs := GetStagingLogsContent()
-	if len(*stagingLogs) > 0 {
+	if len(stagingLogs) > 0 {
 		Fail("You have staged but uncommitted changes. Commit or unstage them first.")
 		return
 	}

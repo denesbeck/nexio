@@ -33,7 +33,7 @@ func LogEntryLookup(op string, path string) (bool, *LogFileEntry) {
 func IsStagingLogsEmpty() bool {
 	Debug("Checking if staging logs are empty.")
 	stagingLogs := GetSyncedStagingLogsContent()
-	if len(*stagingLogs) == 0 {
+	if len(stagingLogs) == 0 {
 		Debug("No staging logs found.")
 		return true
 	}
@@ -48,17 +48,15 @@ func TruncateLogs() {
 	DBTruncateLogs()
 }
 
-func GetStagingLogsContent() (result *[]LogFileEntry) {
-	logs := DBGetStagingLogs()
-	return &logs
+func GetStagingLogsContent() []LogFileEntry {
+	return DBGetStagingLogs()
 }
 
-func GetSyncedStagingLogsContent() (result *[]LogFileEntry) {
-	logs := DBGetSyncedStagingLogs()
-	return &logs
+func GetSyncedStagingLogsContent() []LogFileEntry {
+	return DBGetSyncedStagingLogs()
 }
 
-func SortByOperationAndPath(content []LogFileEntry) (result *[]LogFileEntry) {
+func SortByOperationAndPath(content []LogFileEntry) []LogFileEntry {
 	Debug("Sorting log entries by operation and path")
 	sort.Slice(content, func(i, j int) bool {
 		if content[i].Op == "ADD" && content[j].Op == "MOD" {
@@ -78,14 +76,14 @@ func SortByOperationAndPath(content []LogFileEntry) (result *[]LogFileEntry) {
 		return false
 	})
 	Debug("Log entries sorted successfully")
-	return &content
+	return content
 }
 
 func PrintLogs(content []LogFileEntry) {
 	Debug("Printing %d log entries", len(content))
 	sortedContent := SortByOperationAndPath(content)
 	log := []string{}
-	for _, logEntry := range *sortedContent {
+	for _, logEntry := range sortedContent {
 		switch logEntry.Op {
 		case "ADD":
 			log = append(log, add(" "+logEntry.Op+":")+" "+logEntry.Path)
@@ -109,7 +107,7 @@ func FormatLogs(content []LogFileEntry) string {
 
 	sortedContent := SortByOperationAndPath(content)
 	log := []string{}
-	for _, logEntry := range *sortedContent {
+	for _, logEntry := range sortedContent {
 		switch logEntry.Op {
 		case "ADD":
 			log = append(log, add(" "+logEntry.Op+":")+" "+logEntry.Path)
@@ -159,7 +157,7 @@ func ValidateStagingIntegrity() []string {
 	logs := GetStagingLogsContent()
 	orphanedIds := []string{}
 
-	for _, entry := range *logs {
+	for _, entry := range logs {
 		// REM operations don't have blobs - they just mark files for removal
 		if entry.Op == "REM" {
 			continue
@@ -239,7 +237,7 @@ func GetModifiedOrDeletedFiles() (modified []string, deleted []string) {
 
 	fileList := GetFileListContent(lastCommit.Id)
 
-	for _, file := range *fileList {
+	for _, file := range fileList {
 		// Skip if staged already
 		if IsFileStaged(file.Path) {
 			continue

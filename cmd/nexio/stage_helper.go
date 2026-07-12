@@ -122,7 +122,7 @@ func ExpandFilePaths(args []string) ([]string, error) {
 			}
 
 			stagedFiles := GetStagingLogsContent()
-			for _, entry := range *stagedFiles {
+			for _, entry := range stagedFiles {
 				if entry.Op == "ADD" || entry.Op == "MOD" {
 					if !FileExists(entry.Path) {
 						Debug("Found staged file that no longer exists: %s", entry.Path)

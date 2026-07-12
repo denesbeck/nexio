@@ -24,8 +24,8 @@ func TestCommit(t *testing.T) {
 			t.Errorf("Expected 702, got %d", returnCode)
 		}
 		commits := GetCommits()
-		if len(*commits) == 0 {
-			t.Errorf("Expected at least one commit, got %d", len(*commits))
+		if len(commits) == 0 {
+			t.Errorf("Expected at least one commit, got %d", len(commits))
 		}
 		lastCommit := GetLastCommit()
 		if lastCommit.Id != commitId {
@@ -102,8 +102,8 @@ func Test_GetCommits_Simple(t *testing.T) {
 	}
 
 	commits := GetCommits()
-	if len(*commits) != 3 {
-		t.Errorf("Expected 3 commits, got %d", len(*commits))
+	if len(commits) != 3 {
+		t.Errorf("Expected 3 commits, got %d", len(commits))
 	}
 
 	os.RemoveAll(namespace)
@@ -125,8 +125,8 @@ func Test_GetFileListContent(t *testing.T) {
 		t.Fatal("Expected non-nil file list")
 	}
 
-	if len(*fileList) != 1 {
-		t.Errorf("Expected 1 file in list, got %d", len(*fileList))
+	if len(fileList) != 1 {
+		t.Errorf("Expected 1 file in list, got %d", len(fileList))
 	}
 
 	os.RemoveAll(namespace)
@@ -200,8 +200,8 @@ func Test_ProcessFileList_RemoveOperation(t *testing.T) {
 
 	// Get file list from commit
 	fileList := GetFileListContent(lastCommit.Id)
-	if len(*fileList) != 1 {
-		t.Errorf("Expected 1 file after first commit, got %d", len(*fileList))
+	if len(fileList) != 1 {
+		t.Errorf("Expected 1 file after first commit, got %d", len(fileList))
 	}
 
 	// Delete file and use runStageCommand to detect the deletion
@@ -219,8 +219,8 @@ func Test_ProcessFileList_RemoveOperation(t *testing.T) {
 		// Get new file list
 		newLastCommit := GetLastCommit()
 		newFileList := GetFileListContent(newLastCommit.Id)
-		if len(*newFileList) != 0 {
-			t.Errorf("Expected 0 files after removal commit, got %d", len(*newFileList))
+		if len(newFileList) != 0 {
+			t.Errorf("Expected 0 files after removal commit, got %d", len(newFileList))
 		}
 	}
 
@@ -246,13 +246,13 @@ func Test_ProcessFileList_ModifyOperation(t *testing.T) {
 
 	// Get file list from new commit
 	fileList := GetFileListContent(commitId)
-	if len(*fileList) != 1 {
-		t.Errorf("Expected 1 file after modification, got %d", len(*fileList))
+	if len(fileList) != 1 {
+		t.Errorf("Expected 1 file after modification, got %d", len(fileList))
 	}
 
 	// Verify the commit ID was updated for the modified file
-	if (*fileList)[0].CommitId != commitId {
-		t.Errorf("Expected file to reference new commit %s, got %s", commitId, (*fileList)[0].CommitId)
+	if fileList[0].CommitId != commitId {
+		t.Errorf("Expected file to reference new commit %s, got %s", commitId, fileList[0].CommitId)
 	}
 
 	os.RemoveAll(namespace)
