@@ -14,6 +14,7 @@ func TestCommit(t *testing.T) {
 	setConfig("name", "test user")
 	setConfig("email", "test@test.com")
 
+	prevCommitId := ""
 	for i := range 10 {
 		file := namespace + "file" + strconv.Itoa(i) + ".txt"
 		os.Create(file)
@@ -30,11 +31,13 @@ func TestCommit(t *testing.T) {
 		if lastCommit.Id != commitId {
 			t.Errorf("Expected commit ID %s, got %s", commitId, lastCommit.Id)
 		}
-		if len(*commits) == 1 {
-			if lastCommit.Next != "" {
-				t.Errorf("Expected no next commit, got %s", lastCommit.Next)
-			}
+		// The first commit is the root and must have no parent; every
+		// subsequent commit's first parent must be the previous commit.
+		firstParent := DBGetFirstParent(commitId)
+		if firstParent != prevCommitId {
+			t.Errorf("Expected first parent %q, got %q", prevCommitId, firstParent)
 		}
+		prevCommitId = commitId
 
 		// Verify metadata via DB
 		metadata := DBGetCommitMetadata(commitId)

@@ -92,7 +92,7 @@ func runInteractiveCommit() {
 		return
 	}
 
-	commitTypeName := strings.Split(selectedType, ":")[0]
+	commitTypeName, _, _ := strings.Cut(selectedType, ":")
 	commitTypeName = strings.TrimSpace(commitTypeName)
 	Debug("Selected commit type: %s", commitTypeName)
 

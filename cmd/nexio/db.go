@@ -57,15 +57,22 @@ func initSchema() error {
 
 	CREATE TABLE IF NOT EXISTS commits (
 		id           TEXT PRIMARY KEY,
-		parent_id    TEXT,
 		timestamp    TEXT NOT NULL,
 		message      TEXT NOT NULL,
 		author_name  TEXT NOT NULL,
-		author_email TEXT NOT NULL,
+		author_email TEXT NOT NULL
+	);
+	CREATE INDEX IF NOT EXISTS idx_commits_timestamp ON commits(timestamp);
+
+	CREATE TABLE IF NOT EXISTS commit_parents (
+		commit_id    TEXT NOT NULL,
+		parent_id    TEXT NOT NULL,
+		parent_order INTEGER NOT NULL,   -- 0 = first parent, 1+ = merge parents
+		PRIMARY KEY (commit_id, parent_order),
+		FOREIGN KEY (commit_id) REFERENCES commits(id),
 		FOREIGN KEY (parent_id) REFERENCES commits(id)
 	);
-	CREATE INDEX IF NOT EXISTS idx_commits_parent ON commits(parent_id);
-	CREATE INDEX IF NOT EXISTS idx_commits_timestamp ON commits(timestamp);
+	CREATE INDEX IF NOT EXISTS idx_commit_parents_commit ON commit_parents(commit_id);
 
 	CREATE TABLE IF NOT EXISTS staging (
 		id          TEXT PRIMARY KEY,
@@ -104,7 +111,7 @@ func initSchema() error {
 		version     INTEGER PRIMARY KEY,
 		applied_at  TEXT DEFAULT (datetime('now'))
 	);
-	INSERT OR IGNORE INTO schema_version (version) VALUES (1);
+	INSERT OR IGNORE INTO schema_version (version) VALUES (2);
 	`
 	_, err := db.Exec(schema)
 	return err

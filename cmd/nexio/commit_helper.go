@@ -8,9 +8,9 @@ var (
 )
 
 type Commit struct {
-	Id        string `json:"id"`
-	Timestamp string `json:"timestamp"`
-	Next      string `json:"next"`
+	Id        string   `json:"id"`
+	Timestamp string   `json:"timestamp"`
+	Parents   []string `json:"parents"`
 }
 
 type Author struct {
@@ -47,20 +47,6 @@ func GetFileListContent(commitId string) (result *[]FileListEntry) {
 
 func ProcessFileList(latestCommitId string, newCommitId string) {
 	DBProcessFileList(latestCommitId, newCommitId)
-}
-
-func WriteCommitMetadata(commitId string, message string) {
-	// In SQLite mode, metadata is stored as part of the commit record.
-	// This is called from runCoreCommitCommand, but the actual metadata
-	// (author, message) is written in DBRegisterCommit.
-	// This function is now a no-op since we combine it with RegisterCommitForBranch.
-	Debug("WriteCommitMetadata called for commit %s (handled by DBRegisterCommit)", commitId)
-}
-
-func RegisterCommitForBranch(commitId string) {
-	// This is now handled by DBRegisterCommit which combines
-	// commit creation + branch head update + metadata storage
-	Debug("RegisterCommitForBranch called for commit %s", commitId)
 }
 
 // RegisterCommit creates a commit with metadata and registers it for the current branch

@@ -204,7 +204,7 @@ func collectCommitIds(branch string) []string {
 	for currentId != "" {
 		ids = append(ids, currentId)
 		var parentId sql.NullString
-		err := db.QueryRow("SELECT parent_id FROM commits WHERE id = ?", currentId).Scan(&parentId)
+		err := db.QueryRow("SELECT parent_id FROM commit_parents WHERE commit_id = ? AND parent_order = 0", currentId).Scan(&parentId)
 		if err != nil {
 			break
 		}

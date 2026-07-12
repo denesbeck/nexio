@@ -351,11 +351,20 @@ func mergeRemoteDB(remoteDBPath string) error {
 	return WithTransaction(func(tx *sql.Tx) error {
 		// Insert new commits
 		_, err := tx.Exec(`
-			INSERT OR IGNORE INTO commits (id, parent_id, timestamp, message, author_name, author_email)
-			SELECT id, parent_id, timestamp, message, author_name, author_email FROM remote.commits
+			INSERT OR IGNORE INTO commits (id, timestamp, message, author_name, author_email)
+			SELECT id, timestamp, message, author_name, author_email FROM remote.commits
 		`)
 		if err != nil {
 			return fmt.Errorf("failed to merge commits: %w", err)
+		}
+
+		// Insert commit parents
+		_, err = tx.Exec(`
+			INSERT OR IGNORE INTO commit_parents (commit_id, parent_id, parent_order)
+			SELECT commit_id, parent_id, parent_order FROM remote.commit_parents
+		`)
+		if err != nil {
+			return fmt.Errorf("failed to merge commit parents: %w", err)
 		}
 
 		// Insert new files

@@ -4,6 +4,12 @@ import (
 	"database/sql"
 )
 
+type Parent struct {
+	CommitId    string
+	ParentId    string
+	ParentOrder int
+}
+
 // DBGetLastCommit returns the last commit on the current branch
 func DBGetLastCommit() Commit {
 	Debug("Getting last commit")
@@ -31,7 +37,7 @@ func DBGetLastCommitByBranch(branch string) Commit {
 	var c Commit
 	var parentId sql.NullString
 	err = db.QueryRow(
-		"SELECT id, timestamp, COALESCE(parent_id, '') FROM commits WHERE id = ?",
+		"SELECT id, timestamp, COALESCE(parent_id, '') FROM commits c LEFT JOIN commit_parents p ON c.id = p.commit_id AND parent_order = 0 WHERE id = ?",
 		headCommit.String,
 	).Scan(&c.Id, &c.Timestamp, &parentId)
 	if err != nil {
@@ -39,7 +45,6 @@ func DBGetLastCommitByBranch(branch string) Commit {
 		MustSucceed(err, "operation failed")
 	}
 
-	c.Next = ""
 	Debug("Last commit for branch: %s", c.Id)
 	return c
 }
@@ -59,7 +64,7 @@ func DBCountCommits() int {
 	for currentId != "" {
 		count++
 		var parentId sql.NullString
-		err := db.QueryRow("SELECT parent_id FROM commits WHERE id = ?", currentId).Scan(&parentId)
+		err := db.QueryRow("SELECT parent_id FROM commit_parents WHERE commit_id = ? AND parent_order = 0", currentId).Scan(&parentId)
 		if err != nil {
 			Debug("Failed to walk parent chain: %v", err)
 			break
@@ -100,14 +105,13 @@ func DBGetCommitsByBranch(branch string) []Commit {
 		var c Commit
 		var parentId sql.NullString
 		err := db.QueryRow(
-			"SELECT id, timestamp, COALESCE(parent_id, '') FROM commits WHERE id = ?",
+			"SELECT id, timestamp, COALESCE(parent_id, '') FROM commits c LEFT JOIN commit_parents p ON c.id = p.commit_id AND parent_order = 0 WHERE id = ?",
 			currentId,
 		).Scan(&c.Id, &c.Timestamp, &parentId)
 		if err != nil {
 			Debug("Failed to get commit %s: %v", currentId, err)
 			break
 		}
-		c.Next = ""
 		commits = append(commits, c)
 
 		if parentId.Valid && parentId.String != "" {
@@ -122,11 +126,6 @@ func DBGetCommitsByBranch(branch string) []Commit {
 		commits[i], commits[j] = commits[j], commits[i]
 	}
 
-	// Set the Next field for compatibility: each commit points to the next one
-	for i := 0; i < len(commits)-1; i++ {
-		commits[i].Next = commits[i+1].Id
-	}
-
 	Debug("Retrieved %d commits", len(commits))
 	return commits
 }
@@ -138,28 +137,38 @@ func DBRegisterCommit(commitId, message, branch string) {
 	config := GetConfig()
 	timestamp := GetTimestamp()
 
-	// Get current head as parent
-	var parentId sql.NullString
-	err := db.QueryRow("SELECT head_commit FROM branches WHERE name = ?", branch).Scan(&parentId)
+	// Get current head; it becomes the first parent (parent_order 0) of the new commit
+	var head sql.NullString
+	err := db.QueryRow("SELECT head_commit FROM branches WHERE name = ?", branch).Scan(&head)
 	if err != nil {
 		Debug("Failed to get branch head: %v", err)
 		MustSucceed(err, "operation failed")
 	}
 
-	var parentIdValue interface{}
-	if parentId.Valid && parentId.String != "" {
-		parentIdValue = parentId.String
-	} else {
-		parentIdValue = nil
-	}
+	// Insert the commit and its first-parent link atomically
+	err = WithTransaction(func(tx *sql.Tx) error {
+		if _, err := tx.Exec(
+			`INSERT INTO commits (id, timestamp, message, author_name, author_email)
+			 VALUES (?, ?, ?, ?, ?)`,
+			commitId, timestamp, message, config.Name, config.Email,
+		); err != nil {
+			return err
+		}
 
-	_, err = db.Exec(
-		`INSERT INTO commits (id, parent_id, timestamp, message, author_name, author_email)
-		 VALUES (?, ?, ?, ?, ?, ?)`,
-		commitId, parentIdValue, timestamp, message, config.Name, config.Email,
-	)
+		// Root commit has no parent; every other commit links to the previous head
+		if head.Valid && head.String != "" {
+			if _, err := tx.Exec(
+				`INSERT INTO commit_parents (commit_id, parent_id, parent_order)
+				 VALUES (?, ?, 0)`,
+				commitId, head.String,
+			); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 	if err != nil {
-		Debug("Failed to insert commit: %v", err)
+		Debug("Failed to register commit: %v", err)
 		MustSucceed(err, "operation failed")
 	}
 
@@ -206,6 +215,10 @@ func DBGetCommitLogs(commitId string) []LogFileEntry {
 		}
 		logs = append(logs, e)
 	}
+	if err := rows.Err(); err != nil {
+		MustSucceed(err, "operation failed")
+	}
+
 	if logs == nil {
 		logs = []LogFileEntry{}
 	}
@@ -227,4 +240,63 @@ func DBSaveCommitLogs(commitId string, logs []LogFileEntry) {
 		}
 	}
 	Debug("Commit logs saved successfully")
+}
+
+func DBGetParents(commitId string) []Parent {
+	Debug("Reading parents of commit: %s", commitId)
+
+	rows, err := db.Query(
+		"SELECT commit_id, parent_id, parent_order FROM commit_parents WHERE commit_id = ? ORDER BY parent_order",
+		commitId,
+	)
+
+	if err != nil {
+		Debug("Failed to fetch parents of commit: %s", commitId)
+		MustSucceed(err, "operation failed")
+	}
+	defer rows.Close()
+
+	var parents []Parent
+	for rows.Next() {
+		var p Parent
+		if err := rows.Scan(&p.CommitId, &p.ParentId, &p.ParentOrder); err != nil {
+			MustSucceed(err, "operation failed")
+		}
+		parents = append(parents, p)
+	}
+	if err := rows.Err(); err != nil {
+		MustSucceed(err, "operation failed")
+	}
+
+	Debug("Parents loaded successfully for commit: %s", commitId)
+	return parents
+}
+
+func DBGetFirstParent(commitId string) string {
+	Debug("Reading first parent for commit: %s", commitId)
+
+	var firstParent string
+	err := db.QueryRow("SELECT parent_id FROM commit_parents WHERE commit_id = ? AND parent_order = 0", commitId).Scan(&firstParent)
+
+	if err == sql.ErrNoRows {
+		Debug("Root commit (%s) without any parent commits", commitId)
+		return ""
+	}
+
+	if err != nil {
+		MustSucceed(err, "operation failed")
+	}
+	Debug("First parent loaded successfully for commit: %s", commitId)
+	return firstParent
+}
+
+func DBAddParent(commitId, parentId string, order int) {
+	Debug("Registering parent %s for commit %s with order %d", parentId, commitId, order)
+	_, err := db.Exec("INSERT INTO commit_parents (commit_id, parent_id, parent_order) VALUES (?, ?, ?)", commitId, parentId, order)
+
+	if err != nil {
+		Debug("Registering parent %s for commit %s with order %d failed!", parentId, commitId, order)
+		MustSucceed(err, "operation failed")
+	}
+	Debug("Registering parent %s for commit %s with order %d succeeded!", parentId, commitId, order)
 }
