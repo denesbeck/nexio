@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"strings"
@@ -214,21 +215,34 @@ func runCoreCommitCommand(message string) (int, string) {
 	newCommitId := GenRandHex(20)
 	latestCommitId := GetLastCommit().Id
 	Debug("Creating new commit: id=%s, parent=%s", newCommitId, latestCommitId)
+	branch := GetCurrentBranchName()
 
-	// Register commit first (creates commit record + updates branch head)
-	// This must happen before inserting files/logs due to FK constraints.
-	RegisterCommit(newCommitId, message)
-	Debug("Registered commit for current branch")
+	stagingLogs := GetSyncedStagingLogsContent()
 
-	ProcessFileList(latestCommitId, newCommitId)
-	Debug("Processed file list for commit")
-
-	// Save staging logs as commit logs before truncating
-	stagingLogs := GetStagingLogsContent()
-	DBSaveCommitLogs(newCommitId, stagingLogs)
-	Debug("Saved staging logs as commit logs")
-
-	TruncateLogs()
+	err := WithTransaction(func(tx *sql.Tx) error {
+		// 1. register commit (commit row + commit parent)
+		if err := DBRegisterCommitTx(tx, newCommitId, message, branch); err != nil {
+			return err
+		}
+		// 2. file list for commit
+		if err := DBProcessFileListTx(tx, latestCommitId, newCommitId, stagingLogs); err != nil {
+			return err
+		}
+		// 3. persist staging logs as commit logs
+		if err := DBSaveCommitLogs(tx, newCommitId, stagingLogs); err != nil {
+			return err
+		}
+		// 4. clear staging
+		if err := DBTruncateLogsTx(tx); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		Debug("Failed to commit changes, rolled back: %v", err)
+		Fail("%s", COMMIT_RETURN_CODES[703])
+		return 703, ""
+	}
 
 	return 702, newCommitId
 }

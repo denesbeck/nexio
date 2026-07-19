@@ -14,6 +14,7 @@ Nexio is an educational project that demonstrates the fundamental principles beh
 
 **Key Features:**
 - Stage and commit file changes
+- Atomic commits -- a failed commit rolls back completely, never corrupting the repository
 - Branch management (create, switch, delete)
 - Commit history tracking
 - File status monitoring
@@ -295,7 +296,7 @@ Nexio stores version control data in a `.nexio` directory at the root of your pr
 └── config.json    # User configuration (name, email, remote)
 ```
 
-- **`index.db`**: A single SQLite database that stores all metadata -- staging area, commits, branches, file lists, and commit logs. Using SQLite provides atomic operations, indexed lookups, and significantly better performance for large repositories compared to the previous JSON file-based approach.
+- **`index.db`**: A single SQLite database that stores all metadata -- staging area, commits, branches, file lists, and commit logs. Using SQLite provides atomic operations, indexed lookups, and significantly better performance for large repositories compared to the previous JSON file-based approach. A commit executes as a single database transaction (commit record, parent links, branch head, file list, commit logs, and staging cleanup), so any failure mid-commit rolls back the entire operation and leaves the repository in its previous consistent state.
 - **`objects/`**: Content-addressable blob storage. Files are hashed (BLAKE3) and stored in a two-level directory structure (first two hex chars as shard directory). Identical file contents are automatically deduplicated.
 - **`config.json`**: Stores user settings (name, email) and remote URL.
 

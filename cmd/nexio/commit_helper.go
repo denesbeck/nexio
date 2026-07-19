@@ -43,16 +43,6 @@ func GetFileListContent(commitId string) []FileListEntry {
 	return DBGetFileListForCommit(commitId)
 }
 
-func ProcessFileList(latestCommitId string, newCommitId string) {
-	DBProcessFileList(latestCommitId, newCommitId)
-}
-
-// RegisterCommit creates a commit with metadata and registers it for the current branch
-func RegisterCommit(commitId string, message string) {
-	branch := GetCurrentBranchName()
-	DBRegisterCommit(commitId, message, branch)
-}
-
 // HasUncommittedChanges checks if there are any uncommitted changes in the working directory
 func HasUncommittedChanges() bool {
 	Debug("Checking for uncommitted changes")

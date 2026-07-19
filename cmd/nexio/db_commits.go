@@ -130,8 +130,8 @@ func DBGetCommitsByBranch(branch string) []Commit {
 	return commits
 }
 
-// DBRegisterCommit creates a new commit and updates the branch head
-func DBRegisterCommit(commitId, message, branch string) {
+// DBRegisterCommitTx creates a new commit and updates the branch head
+func DBRegisterCommitTx(tx *sql.Tx, commitId, message, branch string) error {
 	Debug("Registering commit: id=%s, branch=%s", commitId, branch)
 
 	config := GetConfig()
@@ -139,42 +139,39 @@ func DBRegisterCommit(commitId, message, branch string) {
 
 	// Get current head; it becomes the first parent (parent_order 0) of the new commit
 	var head sql.NullString
-	err := db.QueryRow("SELECT head_commit FROM branches WHERE name = ?", branch).Scan(&head)
+	err := tx.QueryRow("SELECT head_commit FROM branches WHERE name = ?", branch).Scan(&head)
 	if err != nil {
 		Debug("Failed to get branch head: %v", err)
-		MustSucceed(err, "operation failed")
+		return err
 	}
 
 	// Insert the commit and its first-parent link atomically
-	err = WithTransaction(func(tx *sql.Tx) error {
-		if _, err := tx.Exec(
-			`INSERT INTO commits (id, timestamp, message, author_name, author_email)
+	if _, err := tx.Exec(
+		`INSERT INTO commits (id, timestamp, message, author_name, author_email)
 			 VALUES (?, ?, ?, ?, ?)`,
-			commitId, timestamp, message, config.Name, config.Email,
+		commitId, timestamp, message, config.Name, config.Email,
+	); err != nil {
+		return err
+	}
+
+	// Root commit has no parent; every other commit links to the previous head
+	if head.Valid && head.String != "" {
+		if _, err := tx.Exec(
+			`INSERT INTO commit_parents (commit_id, parent_id, parent_order)
+				 VALUES (?, ?, 0)`,
+			commitId, head.String,
 		); err != nil {
 			return err
 		}
-
-		// Root commit has no parent; every other commit links to the previous head
-		if head.Valid && head.String != "" {
-			if _, err := tx.Exec(
-				`INSERT INTO commit_parents (commit_id, parent_id, parent_order)
-				 VALUES (?, ?, 0)`,
-				commitId, head.String,
-			); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		Debug("Failed to register commit: %v", err)
-		MustSucceed(err, "operation failed")
 	}
 
 	// Update branch head
-	DBUpdateBranchHead(branch, commitId)
+	if err = DBUpdateBranchHeadTx(tx, branch, commitId); err != nil {
+		Debug("Failed to update branch head: %v", err)
+		return err
+	}
 	Debug("Commit registered successfully")
+	return nil
 }
 
 // DBGetCommitMetadata returns the metadata for a specific commit
@@ -227,19 +224,20 @@ func DBGetCommitLogs(commitId string) []LogFileEntry {
 }
 
 // DBSaveCommitLogs saves staging log entries as commit logs
-func DBSaveCommitLogs(commitId string, logs []LogFileEntry) {
+func DBSaveCommitLogs(tx *sql.Tx, commitId string, logs []LogFileEntry) error {
 	Debug("Saving commit logs: commit=%s, entries=%d", commitId, len(logs))
 	for _, entry := range logs {
-		_, err := db.Exec(
+		_, err := tx.Exec(
 			"INSERT INTO commit_logs (id, commit_id, op, path, blob_hash) VALUES (?, ?, ?, ?, ?)",
 			entry.Id, commitId, entry.Op, entry.Path, entry.BlobHash,
 		)
 		if err != nil {
 			Debug("Failed to save commit log entry: %v", err)
-			MustSucceed(err, "operation failed")
+			return err
 		}
 	}
 	Debug("Commit logs saved successfully")
+	return nil
 }
 
 func DBGetParents(commitId string) []Parent {

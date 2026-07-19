@@ -227,3 +227,14 @@ func DBUpdateBranchHead(branch, commitId string) {
 	}
 	Debug("Branch head updated successfully")
 }
+
+func DBUpdateBranchHeadTx(tx *sql.Tx, branch, commitId string) error {
+	Debug("Updating branch head: branch=%s, commit=%s", branch, commitId)
+	_, err := tx.Exec("UPDATE branches SET head_commit = ? WHERE name = ?", commitId, branch)
+	if err != nil {
+		Debug("Failed to update branch head: %v", err)
+		return err
+	}
+	Debug("Branch head updated successfully")
+	return nil
+}

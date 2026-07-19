@@ -108,6 +108,16 @@ func DBTruncateLogs() {
 	Debug("Staging logs truncated successfully")
 }
 
+func DBTruncateLogsTx(tx *sql.Tx) error {
+	Debug("Truncating staging logs")
+	if _, err := tx.Exec("DELETE FROM staging"); err != nil {
+		Debug("Failed to truncate staging logs: %v", err)
+		return err
+	}
+	Debug("Staging logs truncated successfully")
+	return nil
+}
+
 // DBUpdateLogEntryBlobHash updates the blob hash of a staging entry
 func DBUpdateLogEntryBlobHash(id, blobHash string) {
 	Debug("Updating log entry blob hash: id=%s", id)

@@ -14,17 +14,17 @@ func DBGetFileMetadata(filePath string) (bool, FileListEntry) {
 		return false, FileListEntry{}
 	}
 
-	var e FileListEntry
+	var entry FileListEntry
 	err := db.QueryRow(
 		"SELECT id, commit_id, path, blob_hash, mode FROM files WHERE commit_id = ? AND path = ?",
 		lastCommit.Id, filePath,
-	).Scan(&e.Id, &e.CommitId, &e.Path, &e.BlobHash, &e.Mode)
+	).Scan(&entry.Id, &entry.CommitId, &entry.Path, &entry.BlobHash, &entry.Mode)
 	if err != nil {
 		Debug("File not found in commit: %v", err)
 		return false, FileListEntry{}
 	}
-	Debug("File (%s) found in commit: %s", e.Id, e.CommitId)
-	return true, e
+	Debug("File (%s) found in commit: %s", entry.Id, entry.CommitId)
+	return true, entry
 }
 
 // DBGetFileListForCommit returns all files tracked in a specific commit
@@ -49,6 +49,9 @@ func DBGetFileListForCommit(commitId string) []FileListEntry {
 		}
 		files = append(files, f)
 	}
+	if err := rows.Err(); err != nil {
+		MustSucceed(err, "operation failed")
+	}
 	if files == nil {
 		files = []FileListEntry{}
 	}
@@ -56,9 +59,8 @@ func DBGetFileListForCommit(commitId string) []FileListEntry {
 	return files
 }
 
-// DBProcessFileList builds the file list for a new commit by applying staging changes
-// to the previous commit's file list
-func DBProcessFileList(latestCommitId string, newCommitId string) {
+// DBProcessFileListTx builds the file list for a new commit by applying staging changes to the previous commit's file list
+func DBProcessFileListTx(tx *sql.Tx, latestCommitId string, newCommitId string, stagingLogs []LogFileEntry) error {
 	Debug("Processing file list: latest=%s, new=%s", latestCommitId, newCommitId)
 
 	// Get previous file list
@@ -66,9 +68,6 @@ func DBProcessFileList(latestCommitId string, newCommitId string) {
 	if latestCommitId != "" {
 		prevFiles = DBGetFileListForCommit(latestCommitId)
 	}
-
-	// Get staging logs
-	stagingLogs := DBGetSyncedStagingLogs()
 
 	// Build a map for quick lookup
 	fileMap := make(map[string]FileListEntry)
@@ -87,7 +86,7 @@ func DBProcessFileList(latestCommitId string, newCommitId string) {
 			info, err := os.Stat(logEntry.Path)
 			if err != nil {
 				Debug("Failed to get file info: %v", err)
-				MustSucceed(err, "operation failed")
+				return err
 			}
 			mode := uint32(info.Mode().Perm())
 			fileMap[logEntry.Path] = FileListEntry{
@@ -113,16 +112,17 @@ func DBProcessFileList(latestCommitId string, newCommitId string) {
 	// Generate new IDs for each file entry since each commit gets its own file records
 	for _, f := range fileMap {
 		newId := GenRandHex(20)
-		_, err := db.Exec(
+		_, err := tx.Exec(
 			"INSERT INTO files (id, commit_id, path, blob_hash, mode) VALUES (?, ?, ?, ?, ?)",
 			newId, newCommitId, f.Path, f.BlobHash, f.Mode,
 		)
 		if err != nil {
 			Debug("Failed to insert file: %v", err)
-			MustSucceed(err, "operation failed")
+			return err
 		}
 	}
 	Debug("File list processed successfully")
+	return nil
 }
 
 // DBGetSyncedStagingLogs returns staging logs after syncing with filesystem

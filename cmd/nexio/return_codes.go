@@ -88,6 +88,7 @@ var REMOTE_RETURN_CODES = map[int]string{
 var COMMIT_RETURN_CODES = map[int]string{
 	701: "Nothing to commit.",
 	702: "Commit registered successfully.",
+	703: "Commit failed, rolled back.",
 }
 
 var UNSTAGE_RETURN_CODES = map[int]string{
